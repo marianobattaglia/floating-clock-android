@@ -8,9 +8,15 @@ const val PREF_ALARM_ENABLED = "alarm_enabled"
 const val PREF_ALARM_HOUR = "alarm_hour"
 const val PREF_ALARM_MINUTE = "alarm_minute"
 const val PREF_CLOCK_POSITION = "clock_position"
+const val PREF_CLOCK_SHOW_SECONDS = "clock_show_seconds"
+const val PREF_CLOCK_USE_24H = "clock_use_24h"
 
 const val ACTION_CLOCK_POSITION_CHANGED = "com.example.floatingclock.CLOCK_POSITION_CHANGED"
 const val EXTRA_CLOCK_POSITION = "clock_position"
+const val ACTION_CLOCK_SECONDS_CHANGED = "com.example.floatingclock.CLOCK_SECONDS_CHANGED"
+const val EXTRA_CLOCK_SHOW_SECONDS = "clock_show_seconds"
+const val ACTION_CLOCK_FORMAT_CHANGED = "com.example.floatingclock.CLOCK_FORMAT_CHANGED"
+const val EXTRA_CLOCK_USE_24H = "clock_use_24h"
 
 enum class FloatingClockPosition(val id: String, val label: String, val gravity: Int) {
     TOP_LEFT("top_left", "Top left", Gravity.TOP or Gravity.START),
