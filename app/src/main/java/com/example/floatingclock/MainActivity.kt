@@ -13,6 +13,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,7 +30,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.core.content.ContextCompat
+import androidx.tv.material3.Button
 import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Switch
@@ -37,9 +40,14 @@ import androidx.tv.material3.Text
 import com.example.floatingclock.ui.theme.FloatingClockTheme
 import java.util.Calendar
 import kotlinx.coroutines.delay
+import android.content.BroadcastReceiver
+import android.content.IntentFilter
 
 private const val PREFS_NAME = "floating_clock_prefs"
 private const val PREF_FLOATING_ENABLED = "floating_clock_enabled"
+private const val PREF_ALARM_ENABLED = "alarm_enabled"
+private const val PREF_ALARM_HOUR = "alarm_hour"
+private const val PREF_ALARM_MINUTE = "alarm_minute"
 
 class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalTvMaterial3Api::class)
@@ -67,6 +75,7 @@ fun MainScreen() {
     ) {
         Clock()
         FloatingClockSwitch()
+        AlarmConfigRow()
     }
 }
 
@@ -166,6 +175,15 @@ fun FloatingClockSwitch() {
                         return@Switch
                     }
 
+                    if (AlarmScheduler.needsExactAlarmPermission(context)) {
+                        val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                        try {
+                            context.startActivity(intent)
+                        } catch (_: Exception) {
+                            // Ignore if settings screen is not available.
+                        }
+                    }
+
                     if (!Settings.canDrawOverlays(context)) {
                         val intent = Intent(
                             Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
@@ -199,6 +217,208 @@ fun FloatingClockSwitch() {
                 }
             }
         )
+    }
+}
+
+@OptIn(ExperimentalTvMaterial3Api::class)
+@Composable
+fun AlarmConfigRow() {
+    val context = LocalContext.current
+    val prefs = remember(context) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    }
+    var alarmEnabled by remember {
+        mutableStateOf(prefs.getBoolean(PREF_ALARM_ENABLED, false))
+    }
+    var alarmHour by remember {
+        mutableStateOf(prefs.getInt(PREF_ALARM_HOUR, -1))
+    }
+    var alarmMinute by remember {
+        mutableStateOf(prefs.getInt(PREF_ALARM_MINUTE, -1))
+    }
+    var showDialog by remember { mutableStateOf(false) }
+    var dialogHour by remember { mutableStateOf(0) }
+    var dialogMinute by remember { mutableStateOf(0) }
+    var alarmActive by remember { mutableStateOf(false) }
+
+    DisposableEffect(context) {
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                if (intent?.action != AlarmSoundService.ACTION_ALARM_STATE) return
+                alarmActive = intent.getBooleanExtra(
+                    AlarmSoundService.EXTRA_ALARM_ACTIVE,
+                    false
+                )
+            }
+        }
+        val filter = IntentFilter(AlarmSoundService.ACTION_ALARM_STATE)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            context.registerReceiver(receiver, filter)
+        }
+        onDispose { context.unregisterReceiver(receiver) }
+    }
+
+    LaunchedEffect(showDialog) {
+        if (!showDialog) return@LaunchedEffect
+        val calendar = Calendar.getInstance()
+        dialogHour = if (alarmHour >= 0) alarmHour else calendar.get(Calendar.HOUR_OF_DAY)
+        dialogMinute = if (alarmMinute >= 0) alarmMinute else calendar.get(Calendar.MINUTE)
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+            .clickable {
+                if (alarmActive) {
+                    AlarmScheduler.cancelAlarm(context)
+                    alarmEnabled = false
+                    prefs.edit()
+                        .putBoolean(PREF_ALARM_ENABLED, false)
+                        .apply()
+                } else {
+                    showDialog = true
+                }
+            },
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(text = "Alarm")
+        Switch(
+            checked = alarmEnabled,
+            onCheckedChange = { checked ->
+                if (checked && (alarmHour < 0 || alarmMinute < 0)) {
+                    showDialog = true
+                    return@Switch
+                }
+                if (checked) {
+                    if (AlarmScheduler.needsExactAlarmPermission(context)) {
+                        val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                        try {
+                            context.startActivity(intent)
+                        } catch (_: Exception) {
+                            // Ignore if settings screen is not available.
+                        }
+                    }
+                    val success = AlarmScheduler.scheduleAlarm(
+                        context,
+                        alarmHour,
+                        alarmMinute
+                    )
+                    if (!success) {
+                        Toast.makeText(
+                            context,
+                            "No se puede programar la alarma en este dispositivo.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        return@Switch
+                    }
+                } else {
+                    AlarmScheduler.cancelAlarm(context)
+                }
+                alarmEnabled = checked
+                prefs.edit().putBoolean(PREF_ALARM_ENABLED, alarmEnabled).apply()
+            }
+        )
+    }
+
+    if (showDialog) {
+        Dialog(onDismissRequest = { showDialog = false }) {
+            Surface(modifier = Modifier.padding(24.dp)) {
+                Column(modifier = Modifier.padding(24.dp)) {
+                    Text(text = "Configurar alarma")
+                    Row(
+                        modifier = Modifier.padding(top = 16.dp, bottom = 24.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Button(onClick = { dialogHour = (dialogHour + 1) % 24 }) {
+                                Text("+")
+                            }
+                            Text(
+                                text = String.format("%02d", dialogHour),
+                                fontSize = 32.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Button(onClick = { dialogHour = (dialogHour + 23) % 24 }) {
+                                Text("-")
+                            }
+                        }
+                        Text(
+                            text = ":",
+                            fontSize = 32.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 12.dp)
+                        )
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Button(onClick = { dialogMinute = (dialogMinute + 1) % 60 }) {
+                                Text("+")
+                            }
+                            Text(
+                                text = String.format("%02d", dialogMinute),
+                                fontSize = 32.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Button(onClick = { dialogMinute = (dialogMinute + 59) % 60 }) {
+                                Text("-")
+                            }
+                        }
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Button(onClick = {
+                            if (AlarmScheduler.needsExactAlarmPermission(context)) {
+                                val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                                try {
+                                    context.startActivity(intent)
+                                } catch (_: Exception) {
+                                    // Ignore if settings screen is not available.
+                                }
+                            }
+                            val success = AlarmScheduler.scheduleAlarm(
+                                context,
+                                dialogHour,
+                                dialogMinute
+                            )
+                            if (!success) {
+                                Toast.makeText(
+                                    context,
+                                    "No se puede programar la alarma en este dispositivo.",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                                return@Button
+                            }
+                            alarmHour = dialogHour
+                            alarmMinute = dialogMinute
+                            alarmEnabled = true
+                            prefs.edit()
+                                .putBoolean(PREF_ALARM_ENABLED, true)
+                                .putInt(PREF_ALARM_HOUR, alarmHour)
+                                .putInt(PREF_ALARM_MINUTE, alarmMinute)
+                                .apply()
+                            showDialog = false
+                        }) {
+                            Text("ACTIVAR")
+                        }
+                        Button(onClick = {
+                            AlarmScheduler.cancelAlarm(context)
+                            alarmEnabled = false
+                            prefs.edit()
+                                .putBoolean(PREF_ALARM_ENABLED, false)
+                                .apply()
+                            showDialog = false
+                        }) {
+                            Text("CANCELAR")
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
