@@ -1,6 +1,7 @@
 package com.example.floatingclock
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -36,6 +37,9 @@ import androidx.tv.material3.Text
 import com.example.floatingclock.ui.theme.FloatingClockTheme
 import java.util.Calendar
 import kotlinx.coroutines.delay
+
+private const val PREFS_NAME = "floating_clock_prefs"
+private const val PREF_FLOATING_ENABLED = "floating_clock_enabled"
 
 class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalTvMaterial3Api::class)
@@ -98,7 +102,12 @@ fun Clock(modifier: Modifier = Modifier) {
 @Composable
 fun FloatingClockSwitch() {
     val context = LocalContext.current
-    var isChecked by remember { mutableStateOf(false) }
+    val prefs = remember(context) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    }
+    var isChecked by remember {
+        mutableStateOf(prefs.getBoolean(PREF_FLOATING_ENABLED, false))
+    }
     var pendingEnable by remember { mutableStateOf(false) }
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -119,6 +128,7 @@ fun FloatingClockSwitch() {
         }
 
         isChecked = true
+        prefs.edit().putBoolean(PREF_FLOATING_ENABLED, true).apply()
         val intent = Intent(context, FloatingClockService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             context.startForegroundService(intent)
@@ -176,6 +186,7 @@ fun FloatingClockSwitch() {
                 }
 
                 isChecked = it
+                prefs.edit().putBoolean(PREF_FLOATING_ENABLED, isChecked).apply()
                 val intent = Intent(context, FloatingClockService::class.java)
                 if (isChecked) {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
