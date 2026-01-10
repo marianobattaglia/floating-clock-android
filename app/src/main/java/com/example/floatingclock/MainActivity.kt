@@ -45,6 +45,7 @@ import java.util.Calendar
 import kotlinx.coroutines.delay
 import android.content.BroadcastReceiver
 import android.content.IntentFilter
+import android.app.ActivityManager
 
 class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalTvMaterial3Api::class)
@@ -93,6 +94,14 @@ fun MainScreen() {
             FloatingClockPositionRow()
         }
         AlarmConfigRow()
+    }
+
+    LaunchedEffect(Unit) {
+        val actuallyRunning = isServiceRunning(context, FloatingClockService::class.java)
+        if (floatingEnabled != actuallyRunning) {
+            floatingEnabled = actuallyRunning
+            prefs.edit().putBoolean(PREF_FLOATING_ENABLED, actuallyRunning).apply()
+        }
     }
 }
 
@@ -228,6 +237,13 @@ fun FloatingClockSwitch(
             onCheckedChange = onToggle
         )
     }
+}
+
+private fun isServiceRunning(context: Context, serviceClass: Class<*>): Boolean {
+    val manager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+    @Suppress("DEPRECATION")
+    val services = manager.getRunningServices(Int.MAX_VALUE)
+    return services.any { it.service.className == serviceClass.name }
 }
 
 @OptIn(ExperimentalTvMaterial3Api::class)
