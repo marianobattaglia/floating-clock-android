@@ -42,10 +42,14 @@ import androidx.tv.material3.Switch
 import androidx.tv.material3.Text
 import com.example.floatingclock.ui.theme.FloatingClockTheme
 import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+import java.text.SimpleDateFormat
 import kotlinx.coroutines.delay
 import android.content.BroadcastReceiver
 import android.content.IntentFilter
 import android.app.ActivityManager
+import android.text.format.DateFormat
 
 class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalTvMaterial3Api::class)
@@ -92,6 +96,7 @@ fun MainScreen() {
         )
         if (floatingEnabled) {
             FloatingClockPositionRow()
+            FloatingClockFormatRow()
         }
         AlarmConfigRow()
     }
@@ -109,14 +114,60 @@ fun MainScreen() {
 @Composable
 fun Clock(modifier: Modifier = Modifier) {
     var time by remember { mutableStateOf("") }
+    val context = LocalContext.current
+    val prefs = remember(context) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    }
+    var showSeconds by remember {
+        mutableStateOf(prefs.getBoolean(PREF_CLOCK_SHOW_SECONDS, false))
+    }
+    var use24h by remember {
+        mutableStateOf(
+            prefs.getBoolean(PREF_CLOCK_USE_24H, DateFormat.is24HourFormat(context))
+        )
+    }
 
-    LaunchedEffect(Unit) {
+    DisposableEffect(context) {
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                when (intent?.action) {
+                    ACTION_CLOCK_SECONDS_CHANGED -> {
+                        showSeconds = intent.getBooleanExtra(
+                            EXTRA_CLOCK_SHOW_SECONDS,
+                            false
+                        )
+                    }
+                    ACTION_CLOCK_FORMAT_CHANGED -> {
+                        use24h = intent.getBooleanExtra(
+                            EXTRA_CLOCK_USE_24H,
+                            DateFormat.is24HourFormat(context)
+                        )
+                    }
+                }
+            }
+        }
+        val filter = IntentFilter().apply {
+            addAction(ACTION_CLOCK_SECONDS_CHANGED)
+            addAction(ACTION_CLOCK_FORMAT_CHANGED)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            context.registerReceiver(receiver, filter)
+        }
+        onDispose { context.unregisterReceiver(receiver) }
+    }
+
+    LaunchedEffect(showSeconds, use24h) {
         while (true) {
-            val calendar = Calendar.getInstance()
-            val hour = calendar.get(Calendar.HOUR_OF_DAY)
-            val minute = calendar.get(Calendar.MINUTE)
-            val second = calendar.get(Calendar.SECOND)
-            time = String.format("%02d:%02d:%02d", hour, minute, second)
+            val pattern = when {
+                use24h && showSeconds -> "HH:mm:ss"
+                use24h -> "HH:mm"
+                showSeconds -> "hh:mm:ss a"
+                else -> "hh:mm a"
+            }
+            val formatter = SimpleDateFormat(pattern, Locale.getDefault())
+            time = formatter.format(Date())
             delay(1000)
         }
     }
@@ -372,6 +423,95 @@ fun FloatingClockPositionRow() {
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
+fun FloatingClockFormatRow() {
+    val context = LocalContext.current
+    val prefs = remember(context) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    }
+    var showDialog by remember { mutableStateOf(false) }
+    var showSeconds by remember { mutableStateOf(false) }
+    var use24h by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        val system24h = DateFormat.is24HourFormat(context)
+        if (!prefs.contains(PREF_CLOCK_USE_24H)) {
+            prefs.edit().putBoolean(PREF_CLOCK_USE_24H, system24h).apply()
+        }
+        if (!prefs.contains(PREF_CLOCK_SHOW_SECONDS)) {
+            prefs.edit().putBoolean(PREF_CLOCK_SHOW_SECONDS, false).apply()
+        }
+        use24h = prefs.getBoolean(PREF_CLOCK_USE_24H, system24h)
+        showSeconds = prefs.getBoolean(PREF_CLOCK_SHOW_SECONDS, false)
+    }
+
+    SettingsRow(
+        title = "Clock format",
+        onClick = { showDialog = true }
+    ) {
+        val label = if (use24h) "24-hour" else "12-hour"
+        Text(text = label)
+    }
+
+    if (showDialog) {
+        Dialog(onDismissRequest = { showDialog = false }) {
+            Surface(modifier = Modifier.padding(24.dp)) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(text = "Clock format")
+                    SettingsRow(
+                        title = "Show seconds",
+                        onClick = {
+                            val newValue = !showSeconds
+                            showSeconds = newValue
+                            prefs.edit().putBoolean(PREF_CLOCK_SHOW_SECONDS, newValue).apply()
+                            notifyClockSecondsChanged(context, newValue)
+                        }
+                    ) {
+                        Switch(
+                            checked = showSeconds,
+                            onCheckedChange = { checked ->
+                                showSeconds = checked
+                                prefs.edit().putBoolean(PREF_CLOCK_SHOW_SECONDS, checked).apply()
+                                notifyClockSecondsChanged(context, checked)
+                            }
+                        )
+                    }
+                    SettingsRow(
+                        title = "Use 24-hour format",
+                        onClick = {
+                            val newValue = !use24h
+                            use24h = newValue
+                            prefs.edit().putBoolean(PREF_CLOCK_USE_24H, newValue).apply()
+                            notifyClockFormatChanged(context, newValue)
+                        }
+                    ) {
+                        Switch(
+                            checked = use24h,
+                            onCheckedChange = { checked ->
+                                use24h = checked
+                                prefs.edit().putBoolean(PREF_CLOCK_USE_24H, checked).apply()
+                                notifyClockFormatChanged(context, checked)
+                            }
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Button(onClick = { showDialog = false }) {
+                            Text("OK")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalTvMaterial3Api::class)
+@Composable
 fun PositionButton(selected: Boolean, onClick: () -> Unit) {
     Button(onClick = onClick) {
         Text(if (selected) "X" else " ")
@@ -585,6 +725,26 @@ private fun notifyClockPositionChanged(
     val intent = Intent(ACTION_CLOCK_POSITION_CHANGED)
         .setPackage(context.packageName)
         .putExtra(EXTRA_CLOCK_POSITION, position.id)
+    context.sendBroadcast(intent)
+}
+
+private fun notifyClockSecondsChanged(
+    context: Context,
+    showSeconds: Boolean
+) {
+    val intent = Intent(ACTION_CLOCK_SECONDS_CHANGED)
+        .setPackage(context.packageName)
+        .putExtra(EXTRA_CLOCK_SHOW_SECONDS, showSeconds)
+    context.sendBroadcast(intent)
+}
+
+private fun notifyClockFormatChanged(
+    context: Context,
+    use24h: Boolean
+) {
+    val intent = Intent(ACTION_CLOCK_FORMAT_CHANGED)
+        .setPackage(context.packageName)
+        .putExtra(EXTRA_CLOCK_USE_24H, use24h)
     context.sendBroadcast(intent)
 }
 

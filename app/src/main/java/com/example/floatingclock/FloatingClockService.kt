@@ -29,6 +29,8 @@ class FloatingClockService : Service() {
     private var isBlinking = false
     private val alarmStateReceiver = AlarmStateReceiver()
     private val positionReceiver = PositionReceiver()
+    private val secondsReceiver = SecondsReceiver()
+    private val formatReceiver = FormatReceiver()
 
     override fun onBind(intent: Intent?): IBinder? {
         return null
@@ -96,6 +98,20 @@ class FloatingClockService : Service() {
         } else {
             registerReceiver(positionReceiver, positionFilter)
         }
+
+        val secondsFilter = IntentFilter(ACTION_CLOCK_SECONDS_CHANGED)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(secondsReceiver, secondsFilter, RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(secondsReceiver, secondsFilter)
+        }
+
+        val formatFilter = IntentFilter(ACTION_CLOCK_FORMAT_CHANGED)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(formatReceiver, formatFilter, RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(formatReceiver, formatFilter)
+        }
     }
 
     override fun onDestroy() {
@@ -103,6 +119,8 @@ class FloatingClockService : Service() {
         stopBlink()
         unregisterReceiver(alarmStateReceiver)
         unregisterReceiver(positionReceiver)
+        unregisterReceiver(secondsReceiver)
+        unregisterReceiver(formatReceiver)
         windowManager.removeView(floatingClockView)
     }
 
@@ -134,6 +152,22 @@ class FloatingClockService : Service() {
         }
     }
 
+    private inner class SecondsReceiver : android.content.BroadcastReceiver() {
+        override fun onReceive(context: android.content.Context?, intent: Intent?) {
+            if (intent?.action != ACTION_CLOCK_SECONDS_CHANGED) return
+            val showSeconds = intent.getBooleanExtra(EXTRA_CLOCK_SHOW_SECONDS, false)
+            applySeconds(showSeconds)
+        }
+    }
+
+    private inner class FormatReceiver : android.content.BroadcastReceiver() {
+        override fun onReceive(context: android.content.Context?, intent: Intent?) {
+            if (intent?.action != ACTION_CLOCK_FORMAT_CHANGED) return
+            val use24h = intent.getBooleanExtra(EXTRA_CLOCK_USE_24H, false)
+            applyFormat(use24h)
+        }
+    }
+
     private fun applyPositionFromPrefs() {
         val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
         val positionId = prefs.getString(
@@ -141,6 +175,10 @@ class FloatingClockService : Service() {
             FloatingClockPosition.TOP_LEFT.id
         )
         applyPosition(FloatingClockPosition.fromId(positionId))
+        val showSeconds = prefs.getBoolean(PREF_CLOCK_SHOW_SECONDS, false)
+        applySeconds(showSeconds)
+        val use24h = prefs.getBoolean(PREF_CLOCK_USE_24H, true)
+        applyFormat(use24h)
     }
 
     private fun applyPosition(position: FloatingClockPosition) {
@@ -150,6 +188,32 @@ class FloatingClockService : Service() {
         layoutParams.y = offset
         if (::floatingClockView.isInitialized) {
             windowManager.updateViewLayout(floatingClockView, layoutParams)
+        }
+    }
+
+    private fun applySeconds(showSeconds: Boolean) {
+        if (!::floatingClockView.isInitialized) return
+        val use24h = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+            .getBoolean(PREF_CLOCK_USE_24H, true)
+        applyFormat(use24h, showSeconds)
+    }
+
+    private fun applyFormat(use24h: Boolean) {
+        val showSeconds = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+            .getBoolean(PREF_CLOCK_SHOW_SECONDS, false)
+        applyFormat(use24h, showSeconds)
+    }
+
+    private fun applyFormat(use24h: Boolean, showSeconds: Boolean) {
+        if (!::floatingClockView.isInitialized) return
+        val pattern24 = if (showSeconds) "HH:mm:ss" else "HH:mm"
+        val pattern12 = if (showSeconds) "hh:mm:ss a" else "hh:mm a"
+        if (use24h) {
+            floatingClockView.format24Hour = pattern24
+            floatingClockView.format12Hour = pattern24
+        } else {
+            floatingClockView.format24Hour = pattern12
+            floatingClockView.format12Hour = pattern12
         }
     }
 
