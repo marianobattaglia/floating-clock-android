@@ -256,7 +256,7 @@ fun SettingsRow(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 32.dp, vertical = 8.dp),
+            .padding(horizontal = 48.dp, vertical = 12.dp),
         onClick = onClick
     ) {
         Row(
