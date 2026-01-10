@@ -36,7 +36,7 @@ FloatingClock is a lightweight Android TV app that shows the current time and ca
 
 1) Open the app and toggle **Show Floating Clock** to enable the overlay.
 2) Go to **Alarm** row to set the alarm time.
-3) Press **ACTIVAR** to schedule the alarm or **CANCELAR** to disable it.
+3) Press **ACTIVATE** to schedule the alarm or **CANCEL** to disable it.
 4) When the alarm rings, the overlay clock blinks red and an alarm sound plays.
 5) Open the app and select the **Alarm** row to stop the alarm immediately.
 

@@ -130,7 +130,7 @@ fun FloatingClockSwitch() {
         if (!Settings.canDrawOverlays(context)) {
             Toast.makeText(
                 context,
-                "Permiso de superposicion no concedido.",
+                "Overlay permission not granted.",
                 Toast.LENGTH_LONG
             ).show()
             return@rememberLauncherForActivityResult
@@ -169,7 +169,7 @@ fun FloatingClockSwitch() {
                         notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                         Toast.makeText(
                             context,
-                            "Necesito permiso de notificaciones para iniciar el reloj flotante.",
+                            "Notification permission is required to start the floating clock.",
                             Toast.LENGTH_LONG
                         ).show()
                         return@Switch
@@ -196,7 +196,7 @@ fun FloatingClockSwitch() {
                         }
                         Toast.makeText(
                             context,
-                            "Permiso de superposicion no concedido.",
+                            "Overlay permission not granted.",
                             Toast.LENGTH_LONG
                         ).show()
                         return@Switch
@@ -310,7 +310,7 @@ fun AlarmConfigRow() {
                     if (!success) {
                         Toast.makeText(
                             context,
-                            "No se puede programar la alarma en este dispositivo.",
+                            "Alarm scheduling is not available on this device.",
                             Toast.LENGTH_LONG
                         ).show()
                         return@Switch
@@ -328,7 +328,7 @@ fun AlarmConfigRow() {
         Dialog(onDismissRequest = { showDialog = false }) {
             Surface(modifier = Modifier.padding(24.dp)) {
                 Column(modifier = Modifier.padding(24.dp)) {
-                    Text(text = "Configurar alarma")
+                    Text(text = "Configure alarm")
                     Row(
                         modifier = Modifier.padding(top = 16.dp, bottom = 24.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -388,7 +388,7 @@ fun AlarmConfigRow() {
                             if (!success) {
                                 Toast.makeText(
                                     context,
-                                    "No se puede programar la alarma en este dispositivo.",
+                                    "Alarm scheduling is not available on this device.",
                                     Toast.LENGTH_LONG
                                 ).show()
                                 return@Button
@@ -403,7 +403,7 @@ fun AlarmConfigRow() {
                                 .apply()
                             showDialog = false
                         }) {
-                            Text("ACTIVAR")
+                            Text("ACTIVATE")
                         }
                         Button(onClick = {
                             AlarmScheduler.cancelAlarm(context)
@@ -413,7 +413,7 @@ fun AlarmConfigRow() {
                                 .apply()
                             showDialog = false
                         }) {
-                            Text("CANCELAR")
+                            Text("CANCEL")
                         }
                     }
                 }

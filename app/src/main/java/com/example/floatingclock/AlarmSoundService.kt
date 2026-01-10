@@ -33,8 +33,8 @@ class AlarmSoundService : Service() {
 
         createNotificationChannel()
         val notification = NotificationCompat.Builder(this, ALARM_CHANNEL_ID)
-            .setContentTitle("Alarma")
-            .setContentText("Sonando alarma.")
+            .setContentTitle("Alarm")
+            .setContentText("Alarm is ringing.")
             .setSmallIcon(R.mipmap.ic_launcher)
             .setOngoing(true)
             .build()
@@ -91,7 +91,7 @@ class AlarmSoundService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 ALARM_CHANNEL_ID,
-                "Alarmas",
+                "Alarms",
                 NotificationManager.IMPORTANCE_HIGH
             )
             val manager = getSystemService(NotificationManager::class.java)
