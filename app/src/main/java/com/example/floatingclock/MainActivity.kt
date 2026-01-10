@@ -14,6 +14,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,9 +22,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -42,12 +45,6 @@ import java.util.Calendar
 import kotlinx.coroutines.delay
 import android.content.BroadcastReceiver
 import android.content.IntentFilter
-
-private const val PREFS_NAME = "floating_clock_prefs"
-private const val PREF_FLOATING_ENABLED = "floating_clock_enabled"
-private const val PREF_ALARM_ENABLED = "alarm_enabled"
-private const val PREF_ALARM_HOUR = "alarm_hour"
-private const val PREF_ALARM_MINUTE = "alarm_minute"
 
 class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalTvMaterial3Api::class)
@@ -68,13 +65,33 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainScreen() {
+    val context = LocalContext.current
+    val prefs = remember(context) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    }
+    var floatingEnabled by remember {
+        mutableStateOf(prefs.getBoolean(PREF_FLOATING_ENABLED, false))
+    }
+    val setFloatingEnabled = remember(prefs) {
+        { enabled: Boolean ->
+            floatingEnabled = enabled
+            prefs.edit().putBoolean(PREF_FLOATING_ENABLED, enabled).apply()
+        }
+    }
+
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Clock()
-        FloatingClockSwitch()
+        FloatingClockSwitch(
+            isChecked = floatingEnabled,
+            setFloatingEnabled = setFloatingEnabled
+        )
+        if (floatingEnabled) {
+            FloatingClockPositionRow()
+        }
         AlarmConfigRow()
     }
 }
@@ -109,14 +126,11 @@ fun Clock(modifier: Modifier = Modifier) {
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
-fun FloatingClockSwitch() {
+fun FloatingClockSwitch(
+    isChecked: Boolean,
+    setFloatingEnabled: (Boolean) -> Unit
+) {
     val context = LocalContext.current
-    val prefs = remember(context) {
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-    }
-    var isChecked by remember {
-        mutableStateOf(prefs.getBoolean(PREF_FLOATING_ENABLED, false))
-    }
     var pendingEnable by remember { mutableStateOf(false) }
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -136,8 +150,7 @@ fun FloatingClockSwitch() {
             return@rememberLauncherForActivityResult
         }
 
-        isChecked = true
-        prefs.edit().putBoolean(PREF_FLOATING_ENABLED, true).apply()
+        setFloatingEnabled(true)
         val intent = Intent(context, FloatingClockService::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             context.startForegroundService(intent)
@@ -203,10 +216,9 @@ fun FloatingClockSwitch() {
                     }
                 }
 
-                isChecked = it
-                prefs.edit().putBoolean(PREF_FLOATING_ENABLED, isChecked).apply()
+                setFloatingEnabled(it)
                 val intent = Intent(context, FloatingClockService::class.java)
-                if (isChecked) {
+                if (it) {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         context.startForegroundService(intent)
                     } else {
@@ -217,6 +229,114 @@ fun FloatingClockSwitch() {
                 }
             }
         )
+    }
+}
+
+@OptIn(ExperimentalTvMaterial3Api::class)
+@Composable
+fun FloatingClockPositionRow() {
+    val context = LocalContext.current
+    val prefs = remember(context) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    }
+    var showDialog by remember { mutableStateOf(false) }
+    var positionId by remember {
+        mutableStateOf(prefs.getString(PREF_CLOCK_POSITION, FloatingClockPosition.TOP_LEFT.id))
+    }
+    var dialogPosition by remember {
+        mutableStateOf(FloatingClockPosition.fromId(positionId))
+    }
+
+    LaunchedEffect(showDialog) {
+        if (!showDialog) return@LaunchedEffect
+        dialogPosition = FloatingClockPosition.fromId(positionId)
+    }
+
+    val currentPosition = FloatingClockPosition.fromId(positionId)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+            .clickable { showDialog = true },
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(text = "Clock position")
+        Text(text = currentPosition.label)
+    }
+
+    if (showDialog) {
+        Dialog(onDismissRequest = { showDialog = false }) {
+            Surface(modifier = Modifier.padding(24.dp)) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(text = "Select clock position")
+                    val applySelection: (FloatingClockPosition) -> Unit = { position ->
+                        dialogPosition = position
+                        positionId = position.id
+                        prefs.edit().putString(PREF_CLOCK_POSITION, positionId).apply()
+                        notifyClockPositionChanged(context, position)
+                    }
+                    Box(
+                        modifier = Modifier
+                            .padding(top = 16.dp, bottom = 24.dp)
+                            .size(240.dp, 160.dp)
+                            .border(2.dp, Color.White),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            verticalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxSize().padding(16.dp)
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                PositionButton(
+                                    selected = dialogPosition == FloatingClockPosition.TOP_LEFT,
+                                    onClick = { applySelection(FloatingClockPosition.TOP_LEFT) }
+                                )
+                                PositionButton(
+                                    selected = dialogPosition == FloatingClockPosition.TOP_RIGHT,
+                                    onClick = { applySelection(FloatingClockPosition.TOP_RIGHT) }
+                                )
+                            }
+                            Row(
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                PositionButton(
+                                    selected = dialogPosition == FloatingClockPosition.BOTTOM_LEFT,
+                                    onClick = { applySelection(FloatingClockPosition.BOTTOM_LEFT) }
+                                )
+                                PositionButton(
+                                    selected = dialogPosition == FloatingClockPosition.BOTTOM_RIGHT,
+                                    onClick = { applySelection(FloatingClockPosition.BOTTOM_RIGHT) }
+                                )
+                            }
+                        }
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Button(onClick = { showDialog = false }) {
+                            Text("OK")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalTvMaterial3Api::class)
+@Composable
+fun PositionButton(selected: Boolean, onClick: () -> Unit) {
+    Button(onClick = onClick) {
+        Text(if (selected) "X" else " ")
     }
 }
 
@@ -327,7 +447,10 @@ fun AlarmConfigRow() {
     if (showDialog) {
         Dialog(onDismissRequest = { showDialog = false }) {
             Surface(modifier = Modifier.padding(24.dp)) {
-                Column(modifier = Modifier.padding(24.dp)) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
                     Text(text = "Configure alarm")
                     Row(
                         modifier = Modifier.padding(top = 16.dp, bottom = 24.dp),
@@ -420,6 +543,16 @@ fun AlarmConfigRow() {
             }
         }
     }
+}
+
+private fun notifyClockPositionChanged(
+    context: Context,
+    position: FloatingClockPosition
+) {
+    val intent = Intent(ACTION_CLOCK_POSITION_CHANGED)
+        .setPackage(context.packageName)
+        .putExtra(EXTRA_CLOCK_POSITION, position.id)
+    context.sendBroadcast(intent)
 }
 
 @Preview(showBackground = true)

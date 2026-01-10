@@ -22,11 +22,13 @@ class FloatingClockService : Service() {
 
     private lateinit var windowManager: WindowManager
     private lateinit var floatingClockView: TextClock
+    private lateinit var layoutParams: WindowManager.LayoutParams
     private val blinkHandler = Handler(Looper.getMainLooper())
     private var blinkOn = false
     private var normalBgColor = 0
     private var isBlinking = false
     private val alarmStateReceiver = AlarmStateReceiver()
+    private val positionReceiver = PositionReceiver()
 
     override fun onBind(intent: Intent?): IBinder? {
         return null
@@ -57,7 +59,7 @@ class FloatingClockService : Service() {
         super.onCreate()
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
 
-        val layoutParams = WindowManager.LayoutParams(
+        layoutParams = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -67,11 +69,9 @@ class FloatingClockService : Service() {
             },
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT
-        ).apply {
-            gravity = Gravity.TOP or Gravity.START
-            x = 100
-            y = 100
-        }
+        )
+
+        applyPositionFromPrefs()
 
         floatingClockView = TextClock(this).apply {
             format24Hour = "HH:mm:ss"
@@ -89,12 +89,20 @@ class FloatingClockService : Service() {
         } else {
             registerReceiver(alarmStateReceiver, filter)
         }
+
+        val positionFilter = IntentFilter(ACTION_CLOCK_POSITION_CHANGED)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(positionReceiver, positionFilter, RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(positionReceiver, positionFilter)
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
         stopBlink()
         unregisterReceiver(alarmStateReceiver)
+        unregisterReceiver(positionReceiver)
         windowManager.removeView(floatingClockView)
     }
 
@@ -115,6 +123,33 @@ class FloatingClockService : Service() {
             if (intent?.action != AlarmSoundService.ACTION_ALARM_STATE) return
             val active = intent.getBooleanExtra(AlarmSoundService.EXTRA_ALARM_ACTIVE, false)
             if (active) startBlink() else stopBlink()
+        }
+    }
+
+    private inner class PositionReceiver : android.content.BroadcastReceiver() {
+        override fun onReceive(context: android.content.Context?, intent: Intent?) {
+            if (intent?.action != ACTION_CLOCK_POSITION_CHANGED) return
+            val id = intent.getStringExtra(EXTRA_CLOCK_POSITION)
+            applyPosition(FloatingClockPosition.fromId(id))
+        }
+    }
+
+    private fun applyPositionFromPrefs() {
+        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+        val positionId = prefs.getString(
+            PREF_CLOCK_POSITION,
+            FloatingClockPosition.TOP_LEFT.id
+        )
+        applyPosition(FloatingClockPosition.fromId(positionId))
+    }
+
+    private fun applyPosition(position: FloatingClockPosition) {
+        layoutParams.gravity = position.gravity
+        val offset = (resources.displayMetrics.density * 16).toInt()
+        layoutParams.x = offset
+        layoutParams.y = offset
+        if (::floatingClockView.isInitialized) {
+            windowManager.updateViewLayout(floatingClockView, layoutParams)
         }
     }
 
