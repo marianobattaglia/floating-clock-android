@@ -13,12 +13,12 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -159,76 +159,103 @@ fun FloatingClockSwitch(
         }
     }
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(text = "Show Floating Clock")
-        Switch(
-            checked = isChecked,
-            onCheckedChange = {
-                if (it) {
-                    if (
-                        Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                        ContextCompat.checkSelfPermission(
-                            context,
-                            Manifest.permission.POST_NOTIFICATIONS
-                        ) != PackageManager.PERMISSION_GRANTED
-                    ) {
-                        pendingEnable = true
-                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                        Toast.makeText(
-                            context,
-                            "Notification permission is required to start the floating clock.",
-                            Toast.LENGTH_LONG
-                        ).show()
-                        return@Switch
-                    }
+    val onToggle: (Boolean) -> Unit = onToggle@{ checked ->
+        if (checked) {
+            if (
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                pendingEnable = true
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                Toast.makeText(
+                    context,
+                    "Notification permission is required to start the floating clock.",
+                    Toast.LENGTH_LONG
+                ).show()
+                return@onToggle
+            }
 
-                    if (AlarmScheduler.needsExactAlarmPermission(context)) {
-                        val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
-                        try {
-                            context.startActivity(intent)
-                        } catch (_: Exception) {
-                            // Ignore if settings screen is not available.
-                        }
-                    }
-
-                    if (!Settings.canDrawOverlays(context)) {
-                        val intent = Intent(
-                            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                            Uri.parse("package:${context.packageName}")
-                        )
-                        try {
-                            context.startActivity(intent)
-                        } catch (_: Exception) {
-                            // No settings screen available; keep the switch off.
-                        }
-                        Toast.makeText(
-                            context,
-                            "Overlay permission not granted.",
-                            Toast.LENGTH_LONG
-                        ).show()
-                        return@Switch
-                    }
-                }
-
-                setFloatingEnabled(it)
-                val intent = Intent(context, FloatingClockService::class.java)
-                if (it) {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        context.startForegroundService(intent)
-                    } else {
-                        context.startService(intent)
-                    }
-                } else {
-                    context.stopService(intent)
+            if (AlarmScheduler.needsExactAlarmPermission(context)) {
+                val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                try {
+                    context.startActivity(intent)
+                } catch (_: Exception) {
+                    // Ignore if settings screen is not available.
                 }
             }
+
+            if (!Settings.canDrawOverlays(context)) {
+                val intent = Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:${context.packageName}")
+                )
+                try {
+                    context.startActivity(intent)
+                } catch (_: Exception) {
+                    // No settings screen available; keep the switch off.
+                }
+                Toast.makeText(
+                    context,
+                    "Overlay permission not granted.",
+                    Toast.LENGTH_LONG
+                ).show()
+                return@onToggle
+            }
+        }
+
+        setFloatingEnabled(checked)
+        val intent = Intent(context, FloatingClockService::class.java)
+        if (checked) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent)
+            } else {
+                context.startService(intent)
+            }
+        } else {
+            context.stopService(intent)
+        }
+    }
+
+    SettingsRow(
+        title = "Show Floating Clock",
+        onClick = { onToggle(!isChecked) }
+    ) {
+        Switch(
+            checked = isChecked,
+            onCheckedChange = onToggle
         )
+    }
+}
+
+@OptIn(ExperimentalTvMaterial3Api::class)
+@Composable
+fun SettingsRow(
+    title: String,
+    onClick: () -> Unit,
+    trailing: @Composable RowScope.() -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 32.dp, vertical = 8.dp),
+        onClick = onClick
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(text = title)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                content = trailing
+            )
+        }
     }
 }
 
@@ -253,15 +280,10 @@ fun FloatingClockPositionRow() {
     }
 
     val currentPosition = FloatingClockPosition.fromId(positionId)
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp)
-            .clickable { showDialog = true },
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+    SettingsRow(
+        title = "Clock position",
+        onClick = { showDialog = true }
     ) {
-        Text(text = "Clock position")
         Text(text = currentPosition.label)
     }
 
@@ -387,25 +409,20 @@ fun AlarmConfigRow() {
         dialogMinute = if (alarmMinute >= 0) alarmMinute else calendar.get(Calendar.MINUTE)
     }
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp)
-            .clickable {
-                if (alarmActive) {
-                    AlarmScheduler.cancelAlarm(context)
-                    alarmEnabled = false
-                    prefs.edit()
-                        .putBoolean(PREF_ALARM_ENABLED, false)
-                        .apply()
-                } else {
-                    showDialog = true
-                }
-            },
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+    SettingsRow(
+        title = "Alarm",
+        onClick = {
+            if (alarmActive) {
+                AlarmScheduler.cancelAlarm(context)
+                alarmEnabled = false
+                prefs.edit()
+                    .putBoolean(PREF_ALARM_ENABLED, false)
+                    .apply()
+            } else {
+                showDialog = true
+            }
+        }
     ) {
-        Text(text = "Alarm")
         Switch(
             checked = alarmEnabled,
             onCheckedChange = { checked ->
