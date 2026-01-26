@@ -29,12 +29,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.tv.material3.Button
 import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.Surface
@@ -118,6 +121,7 @@ fun Clock(modifier: Modifier = Modifier) {
     val prefs = remember(context) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     }
+    val lifecycleOwner = LocalLifecycleOwner.current
     var showSeconds by remember {
         mutableStateOf(prefs.getBoolean(PREF_CLOCK_SHOW_SECONDS, false))
     }
@@ -125,6 +129,20 @@ fun Clock(modifier: Modifier = Modifier) {
         mutableStateOf(
             prefs.getBoolean(PREF_CLOCK_USE_24H, DateFormat.is24HourFormat(context))
         )
+    }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                showSeconds = prefs.getBoolean(PREF_CLOCK_SHOW_SECONDS, false)
+                use24h = prefs.getBoolean(
+                    PREF_CLOCK_USE_24H,
+                    DateFormat.is24HourFormat(context)
+                )
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     DisposableEffect(context) {
@@ -333,6 +351,7 @@ fun FloatingClockPositionRow() {
     val prefs = remember(context) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     }
+    val lifecycleOwner = LocalLifecycleOwner.current
     var showDialog by remember { mutableStateOf(false) }
     var positionId by remember {
         mutableStateOf(prefs.getString(PREF_CLOCK_POSITION, FloatingClockPosition.TOP_LEFT.id))
@@ -344,6 +363,20 @@ fun FloatingClockPositionRow() {
     LaunchedEffect(showDialog) {
         if (!showDialog) return@LaunchedEffect
         dialogPosition = FloatingClockPosition.fromId(positionId)
+    }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                positionId = prefs.getString(
+                    PREF_CLOCK_POSITION,
+                    FloatingClockPosition.TOP_LEFT.id
+                )
+                dialogPosition = FloatingClockPosition.fromId(positionId)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     val currentPosition = FloatingClockPosition.fromId(positionId)
@@ -428,6 +461,7 @@ fun FloatingClockFormatRow() {
     val prefs = remember(context) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     }
+    val lifecycleOwner = LocalLifecycleOwner.current
     var showDialog by remember { mutableStateOf(false) }
     var showSeconds by remember { mutableStateOf(false) }
     var use24h by remember { mutableStateOf(false) }
@@ -442,6 +476,18 @@ fun FloatingClockFormatRow() {
         }
         use24h = prefs.getBoolean(PREF_CLOCK_USE_24H, system24h)
         showSeconds = prefs.getBoolean(PREF_CLOCK_SHOW_SECONDS, false)
+    }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                val system24h = DateFormat.is24HourFormat(context)
+                use24h = prefs.getBoolean(PREF_CLOCK_USE_24H, system24h)
+                showSeconds = prefs.getBoolean(PREF_CLOCK_SHOW_SECONDS, false)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     SettingsRow(
