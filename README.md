@@ -27,6 +27,8 @@ https://github.com/user-attachments/assets/2404c8c6-d9b0-43e4-8aec-4f57f02c841b
 
 - Live clock on the main screen.
 - Floating overlay clock that stays visible on top of other apps.
+- Selectable overlay position (four screen corners).
+- Clock format settings (12/24-hour and optional seconds).
 - Alarm with HH:MM configuration in 24-hour format.
 - Alarm sound plays in the background and the overlay clock blinks red while it is active.
 - Alarm can be dismissed by entering the app and selecting the Alarm row.
@@ -49,10 +51,12 @@ https://github.com/user-attachments/assets/2404c8c6-d9b0-43e4-8aec-4f57f02c841b
 ## Usage
 
 1) Open the app and toggle **Show Floating Clock** to enable the overlay.
-2) Go to **Alarm** row to set the alarm time.
-3) Press **ACTIVATE** to schedule the alarm or **CANCEL** to disable it.
-4) When the alarm rings, the overlay clock blinks red and an alarm sound plays.
-5) Open the app and select the **Alarm** row to stop the alarm immediately.
+2) Use **Clock position** to choose a corner for the overlay.
+3) Use **Clock format** to toggle 12/24-hour format and show/hide seconds.
+4) Go to **Alarm** row to set the alarm time.
+5) Press **ACTIVATE** to schedule the alarm or **CANCEL** to disable it.
+6) When the alarm rings, the overlay clock blinks red and an alarm sound plays.
+7) Open the app and select the **Alarm** row to stop the alarm immediately.
 
 ## Notes
 
