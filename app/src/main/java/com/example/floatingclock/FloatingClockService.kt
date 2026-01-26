@@ -73,8 +73,6 @@ class FloatingClockService : Service() {
             PixelFormat.TRANSLUCENT
         )
 
-        applyPositionFromPrefs()
-
         floatingClockView = TextClock(this).apply {
             format24Hour = "HH:mm:ss"
             format12Hour = "hh:mm:ss a"
@@ -84,6 +82,7 @@ class FloatingClockService : Service() {
             setBackgroundColor(normalBgColor)
             setPadding(24, 16, 24, 16)
         }
+        applyPositionFromPrefs()
         windowManager.addView(floatingClockView, layoutParams)
         val filter = IntentFilter(AlarmSoundService.ACTION_ALARM_STATE)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -186,7 +185,7 @@ class FloatingClockService : Service() {
         val offset = (resources.displayMetrics.density * 16).toInt()
         layoutParams.x = offset
         layoutParams.y = offset
-        if (::floatingClockView.isInitialized) {
+        if (::floatingClockView.isInitialized && floatingClockView.isAttachedToWindow) {
             windowManager.updateViewLayout(floatingClockView, layoutParams)
         }
     }
