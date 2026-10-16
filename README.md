@@ -60,5 +60,29 @@ https://github.com/user-attachments/assets/2404c8c6-d9b0-43e4-8aec-4f57f02c841b
 
 ## Notes
 
+See [AGENTS.md](AGENTS.md) for Codex guidance and development checks.
+
 - On some Android TV devices or emulators, exact alarms may not be allowed. In that case, the app falls back to a best-effort schedule.
 - If the emulator has no default alarm sound, the app falls back to a simple beep tone.
+
+## Development with Codex
+
+OpenSpec workflows are installed in `.agents/skills/`, with project context in
+`openspec/config.yaml`. Use `$openspec-explore` to investigate an idea,
+`$openspec-propose "your idea"` to prepare a change, `$openspec-apply-change` to
+implement it, and `$openspec-archive-change` after implementation and verification.
+Small fixes can be requested directly.
+
+Install Android SDK Platform 36 and use a JDK compatible with AGP 8.13.2
+(17 or newer). Keep the SDK path in the ignored `local.properties` file.
+From the repository root on macOS/Linux:
+
+```sh
+bash ./gradlew --version
+bash ./gradlew :app:assembleDebug
+bash ./gradlew :app:lintDebug
+```
+
+The debug APK is generated at `app/build/outputs/apk/debug/app-debug.apk`.
+There are currently no test sources. Validate affected remote navigation,
+overlay and alarm behavior on an Android TV emulator or device as well.
