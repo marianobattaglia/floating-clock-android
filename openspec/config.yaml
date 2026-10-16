@@ -1,0 +1,55 @@
+schema: spec-driven
+
+context: |
+  FloatingClock is a single-module Android TV app with a floating clock overlay
+  and a background alarm. Stack: Kotlin, Jetpack Compose for TV, Android
+  services, SharedPreferences and AlarmManager. No backend.
+  The app uses minSdk 21 and compileSdk/targetSdk 36.
+  Dependency versions live in gradle/libs.versions.toml.
+  MainActivity owns settings UI; FloatingClockService owns the overlay;
+  AlarmScheduler, AlarmReceiver and AlarmSoundService handle alarms.
+  Preserve D-pad navigation, visible focus, Back behavior, persisted preference
+  compatibility, API guards and service/resource cleanup.
+  Read AGENTS.md for repository guidance and validation commands.
+  There are currently no test sources. Build/lint do not replace device checks.
+
+rules:
+  proposal:
+    - Describe the user-visible behavior and scope of the change.
+  specs:
+    - Include relevant TV remote navigation and permission-denied scenarios.
+    - For alarm or overlay changes, cover lifecycle and affected Android API levels.
+  tasks:
+    - Include build/lint for Android code changes and relevant device checks.
+    - Distinguish automated checks from manual Android TV checks.
+
+# Project context (optional)
+# This is shown to AI when creating artifacts.
+# Add your tech stack, conventions, style guides, domain knowledge, etc.
+# Example:
+#   context: |
+#     Tech stack: TypeScript, React, Node.js
+#     We use conventional commits
+#     Domain: e-commerce platform
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always include a "Non-goals" section
+#     tasks:
+#       - Break tasks into chunks of max 2 hours
+
+# Per-operation guidance (optional)
+# Add advisory guidance for how apply and archive work should be conducted.
+# This is separate from artifact rules above.
+# Example:
+#   operations:
+#     apply:
+#       guidance:
+#         - Keep test summaries concise
+#     archive:
+#       guidance:
+#         - Summarize the archive outcome before finishing
