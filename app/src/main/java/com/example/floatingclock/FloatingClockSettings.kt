@@ -1,5 +1,6 @@
 package com.example.floatingclock
 
+import android.content.SharedPreferences
 import android.view.Gravity
 
 const val PREFS_NAME = "floating_clock_prefs"
@@ -28,5 +29,42 @@ enum class FloatingClockPosition(val id: String, val label: String, val gravity:
         fun fromId(id: String?): FloatingClockPosition {
             return entries.firstOrNull { it.id == id } ?: TOP_LEFT
         }
+    }
+}
+
+const val PREF_CLOCK_EDGE_DISTANCE_DP = "clock_edge_distance_dp"
+const val PREF_CLOCK_SCALE_PERCENT = "clock_scale_percent"
+const val PREF_CLOCK_PADDING_PERCENT = "clock_padding_percent"
+const val ACTION_CLOCK_APPEARANCE_CHANGED = "com.example.floatingclock.CLOCK_APPEARANCE_CHANGED"
+
+// Read independently: a malformed preference must not discard the other settings.
+fun SharedPreferences.readClockAppearance(): ClockAppearance = ClockAppearance.from(all)
+
+object ClockAppearanceLimits {
+    val edgeDistance = AppearanceRange(0, 128, 4, 16)
+    val overallSize = AppearanceRange(50, 200, 10, 100)
+    val internalSpacing = AppearanceRange(0, 300, 10, 100)
+}
+
+data class AppearanceRange(val min: Int, val max: Int, val step: Int, val default: Int) {
+    fun normalize(value: Any?): Int = (value as? Int ?: default).coerceIn(min, max)
+
+    fun adjust(value: Int, increase: Boolean): Int {
+        val bounded = value.coerceIn(min, max)
+        return (bounded + if (increase) step else -step).coerceIn(min, max)
+    }
+}
+
+data class ClockAppearance(
+    val edgeDistanceDp: Int = ClockAppearanceLimits.edgeDistance.default,
+    val scalePercent: Int = ClockAppearanceLimits.overallSize.default,
+    val paddingPercent: Int = ClockAppearanceLimits.internalSpacing.default
+) {
+    companion object {
+        fun from(values: Map<String, *>): ClockAppearance = ClockAppearance(
+            ClockAppearanceLimits.edgeDistance.normalize(values[PREF_CLOCK_EDGE_DISTANCE_DP]),
+            ClockAppearanceLimits.overallSize.normalize(values[PREF_CLOCK_SCALE_PERCENT]),
+            ClockAppearanceLimits.internalSpacing.normalize(values[PREF_CLOCK_PADDING_PERCENT])
+        )
     }
 }

@@ -19,9 +19,17 @@ FloatingClock is a lightweight Android TV app that shows the current time and ca
 - Floating Clock Overlay (Ringing)
 <img width="3840" height="2160" alt="overlay-alarm" src="https://github.com/user-attachments/assets/0f818c36-a19c-43fc-aebe-95eddea8ccf2" />
 
-## Demo
+## Demos
+
+### General demo
 
 https://github.com/user-attachments/assets/2404c8c6-d9b0-43e4-8aec-4f57f02c841b
+
+### Clock appearance
+
+Adjusting the floating clock's edge distance, overall size, and internal spacing:
+
+https://github.com/user-attachments/assets/b8564eed-36bc-4bdb-96c2-99fa0e184f26
 
 ## Features
 
@@ -29,6 +37,7 @@ https://github.com/user-attachments/assets/2404c8c6-d9b0-43e4-8aec-4f57f02c841b
 - Floating overlay clock that stays visible on top of other apps.
 - Selectable overlay position (four screen corners).
 - Clock format settings (12/24-hour and optional seconds).
+- Adjustable floating clock edge distance, overall size, and internal spacing, saved between sessions.
 - Alarm with HH:MM configuration in 24-hour format.
 - Alarm sound plays in the background and the overlay clock blinks red while it is active.
 - Alarm can be dismissed by entering the app and selecting the Alarm row.
@@ -53,10 +62,13 @@ https://github.com/user-attachments/assets/2404c8c6-d9b0-43e4-8aec-4f57f02c841b
 1) Open the app and toggle **Show Floating Clock** to enable the overlay.
 2) Use **Clock position** to choose a corner for the overlay.
 3) Use **Clock format** to toggle 12/24-hour format and show/hide seconds.
-4) Go to **Alarm** row to set the alarm time.
-5) Press **ACTIVATE** to schedule the alarm or **CANCEL** to disable it.
-6) When the alarm rings, the overlay clock blinks red and an alarm sound plays.
-7) Open the app and select the **Alarm** row to stop the alarm immediately.
+4) Use **Clock appearance** to change **Edge distance** (0–128 dp, steps of 4 dp, default 16 dp), **Overall size** (50–200%, steps of 10%, default 100%), and **Internal spacing** (0–300%, steps of 10%, default 100%) with the remote’s **−** and **+** buttons.
+5) Go to **Alarm** row to set the alarm time.
+6) Press **ACTIVATE** to schedule the alarm or **CANCEL** to disable it.
+7) When the alarm rings, the overlay clock blinks red and an alarm sound plays.
+8) Open the app and select the **Alarm** row to stop the alarm immediately.
+
+Appearance changes apply and save immediately. **OK** or Back closes the modal and keeps your adjustments. At 100%, size and spacing match the original overlay; overall size scales both text and padding, while internal spacing changes only padding when space permits. The same edge distance applies to both edges of the selected corner. If the requested clock cannot fit, it is scaled down and its edge distance limited to keep the complete time visible, without changing your saved choices. These controls do not resize the main screen clock.
 
 ## Notes
 
@@ -64,6 +76,10 @@ See [AGENTS.md](AGENTS.md) for Codex guidance and development checks.
 
 - On some Android TV devices or emulators, exact alarms may not be allowed. In that case, the app falls back to a best-effort schedule.
 - If the emulator has no default alarm sound, the app falls back to a simple beep tone.
+
+## Planned UI improvements
+
+A future iteration will improve the visual design across the app, including the main screen, settings rows, and dialogs. The current floating clock appearance controls are accepted as delivered; their visual refinement will be part of that broader UI work. Detailed scope and timing will be defined in a separate OpenSpec change.
 
 ## Development with Codex
 
@@ -81,8 +97,9 @@ From the repository root on macOS/Linux:
 bash ./gradlew --version
 bash ./gradlew :app:assembleDebug
 bash ./gradlew :app:lintDebug
+bash ./gradlew :app:testDebugUnitTest
 ```
 
 The debug APK is generated at `app/build/outputs/apk/debug/app-debug.apk`.
-There are currently no test sources. Validate affected remote navigation,
+Local regression tests cover appearance preference normalization and geometry. Validate affected remote navigation,
 overlay and alarm behavior on an Android TV emulator or device as well.
