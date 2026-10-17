@@ -13,6 +13,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -88,7 +90,7 @@ fun MainScreen() {
     }
 
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -100,6 +102,7 @@ fun MainScreen() {
         if (floatingEnabled) {
             FloatingClockPositionRow()
             FloatingClockFormatRow()
+            FloatingClockAppearanceRow()
         }
         AlarmConfigRow()
     }
@@ -320,10 +323,11 @@ private fun isServiceRunning(context: Context, serviceClass: Class<*>): Boolean 
 fun SettingsRow(
     title: String,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
     trailing: @Composable RowScope.() -> Unit
 ) {
     Surface(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 48.dp, vertical = 12.dp),
         onClick = onClick
