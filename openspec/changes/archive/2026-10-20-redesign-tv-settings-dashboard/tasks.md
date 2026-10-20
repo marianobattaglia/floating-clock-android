@@ -26,7 +26,7 @@
 - [x] 4.1 Run `bash ./gradlew :app:testDebugUnitTest`, `bash ./gradlew :app:assembleDebug`, and `bash ./gradlew :app:lintDebug`; record actual outcomes and any JDK/SDK/network/tool blocker separately from manual validation.
 - [x] 4.2 On Android TV, compare the existing and redesigned configuration flows using D-pad/Select/Back, including direct dialog opening, switches, focus restoration, 720p/1080p readability, the passive preview, and the absence of an advertising placeholder. Record screenshots and actual results without physical-device identifiers; mark unavailable checks as pending.
 - [x] 4.3 On Android TV, verify unchanged overlay enable/disable, all four corners, 12/24-hour formats and seconds, three appearance control ranges and immediate persistence, hidden dependent rows, and saved values after app/service recreation. Verify the header and actual overlay geometry retain their current independent behavior.
-- [ ] 4.4 On Android TV, verify unchanged alarm scheduling/canceling, sound, red blinking, and dismissal through the current alarm row. Compare existing overlay/notification denial and exact-alarm/unavailable-settings behavior where applicable; record pre-existing defects separately without adding functional fixes to this visual change.
+- [x] 4.4 On Android TV, verify unchanged alarm scheduling/canceling, sound, red blinking, and dismissal through the current alarm row. Compare existing overlay/notification denial and exact-alarm/unavailable-settings behavior where applicable; record pre-existing defects separately without adding functional fixes to this visual change.
 - [x] 4.5 Review the implementation diff for presentation-only scope: unchanged preference/action contracts, permission flows, schedulers, service lifecycle, overlay rendering, SDK/dependencies, and manifest. Review minSdk compatibility of any added UI code and document runtime coverage by available API level; distinguish static review from device results.
 
 ## 5. Requested visual follow-up
@@ -44,3 +44,7 @@
 
 - [x] 7.1 Draw the miniature clock only when floating clock is enabled, preserve the landscape when disabled, and hide/restore the large header clock inversely while keeping live time observation mounted.
 - [x] 7.2 Build and lint, verify disabled/enabled/disabled transitions on Android TV, and refresh 1080p/720p captures while preserving D-pad and OK/Back behavior.
+
+## Manual acceptance and archive
+
+On 2026-10-20, the project owner confirmed manual testing of both changes was OK and requested archiving with no pending tasks. The remaining validation tasks were closed on that confirmation. This is owner-reported acceptance, distinct from the agent-run device/API evidence recorded in validation notes; no additional API inventory or automated results are inferred.

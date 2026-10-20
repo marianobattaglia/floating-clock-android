@@ -17,9 +17,9 @@ Debug application/test APK assembly and translation verification passed after th
 
 ## Limits and remaining acceptance
 
-The semantic tests and execution with TalkBack active establish the checked properties and interaction behavior. They do not establish the exact spoken utterances, pronunciation, speech language selection, absence of redundant announcements, or accessibility-focus traversal in every language. Listening to and manually traversing the affected controls with TalkBack in English, Spanish, Portuguese, and French remains pending. Keyboard/D-pad focus assertions are not assertions about TalkBack accessibility focus.
+The semantic tests and execution with TalkBack active establish the checked properties and interaction behavior. They do not establish the exact spoken utterances, pronunciation, speech language selection, absence of redundant announcements, or accessibility-focus traversal in every language. The project owner subsequently confirmed manual testing was OK and requested closing both changes with no pending tasks. That acceptance closes the tracked manual work; no per-language spoken utterance log was supplied. Keyboard/D-pad focus assertions are not assertions about TalkBack accessibility focus.
 
-No claim is made that the entire app, overlay, contrast, font scaling, or all supported Android versions have passed an accessibility audit. This review does not mark the existing full manual acceptance task or legacy API/permission task complete.
+No claim is made that the entire app, overlay, contrast, font scaling, or all supported Android versions have passed an accessibility audit. The later owner-reported manual acceptance closes the full manual acceptance and legacy API/permission tasks; it does not expand the agent-run evidence in this review.
 
 ## Official references
 

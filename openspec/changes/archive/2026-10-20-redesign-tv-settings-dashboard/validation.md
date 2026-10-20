@@ -29,13 +29,13 @@ Environment: existing Android TV AVD, API 36. Tests targeted only the emulator. 
 
 ## Captures
 
-- [Dashboard, 1080p](../../../docs/images/dashboard.png)
-- [Position dialog](../../../docs/images/position-dialog.png)
-- [Format dialog](../../../docs/images/format-dialog.png)
-- [Appearance dialog](../../../docs/images/appearance-dialog.png)
-- [Alarm dialog](../../../docs/images/alarm-dialog.png)
-- [Dashboard, 720p](../../../docs/images/dashboard-720p.png)
-- [Appearance dialog, 720p](../../../docs/images/appearance-dialog-720p.png)
+- [Dashboard, 1080p](../../../../docs/images/dashboard.png)
+- [Position dialog](../../../../docs/images/position-dialog.png)
+- [Format dialog](../../../../docs/images/format-dialog.png)
+- [Appearance dialog](../../../../docs/images/appearance-dialog.png)
+- [Alarm dialog](../../../../docs/images/alarm-dialog.png)
+- [Dashboard, 720p](../../../../docs/images/dashboard-720p.png)
+- [Appearance dialog, 720p](../../../../docs/images/appearance-dialog-720p.png)
 
 ## Remaining runtime checks
 
@@ -82,7 +82,11 @@ These checks supersede the initial preview-activation and advertising-placeholde
 - The miniature clock is drawn only while the floating clock is enabled; when disabled, its preview retains the landscape without a clock. The large fixed header clock uses the inverse visibility. Its existing time/format observation remains mounted and continues supplying the preview; no additional timer, preference key, permission, or service action was introduced.
 - `:app:assembleDebug` passed. `:app:lintDebug` retains the same 7 errors, 56 warnings, and 4 hints as the original HEAD baseline (IDs, messages, severities, and counts compared).
 - On the API 36 Android TV emulator, verified the disabled/enabled/disabled transition: the header is present when disabled, absent when enabled, and restored after disabling. Reviewed the landscape-only disabled preview and live-clock enabled preview.
-- Captures: [disabled](../../../docs/images/dashboard-clock-disabled.png), [enabled](../../../docs/images/dashboard-clock-enabled.png).
+- Captures: [disabled](../../../../docs/images/dashboard-clock-disabled.png), [enabled](../../../../docs/images/dashboard-clock-enabled.png).
 - D-pad configuration navigation, original OK dialogs and Back focus restoration passed. Reviewed the updated 1080p/720p dashboard and refreshed all documented dialogs. Original emulator preferences and display overrides were restored; the test emulator was shut down. Physical-device testing and the existing sound/notification-denial limitations remain unchanged.
 - Follow-up correction: read the formatted time during composition before forwarding it through `SideEffect`. This keeps Compose subscribed to the ticking state even when the header Text is not rendered, so activity recreation and format/seconds updates continue to reach the passive canvas. Rebuilt the APK and repeated lint comparison after this correction.
 - After recreating the activity at 720p with the floating clock enabled, verified the preview shows the current time instead of the placeholder. Enabled seconds through the existing format dialog and inspected captures three seconds apart: the miniature time advanced while the large header remained hidden. Original preferences were restored after the check.
+
+## Owner acceptance for archive
+
+On 2026-10-20, the project owner confirmed manual testing of both redesign and multilingual support was OK and requested archiving without pending tasks. Task 4.4 was closed on this confirmation; earlier open-validation statements above describe the agent-run review at that time. No additional device/API inventory is inferred, and pre-existing lint findings are unchanged.

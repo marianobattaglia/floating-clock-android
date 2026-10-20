@@ -1,8 +1,8 @@
 # Localization validation
 
-Focused Google-guidance and TalkBack validation is recorded in [accessibility-review.md](accessibility-review.md), including a selected-state semantics fix and seven passing tests with TalkBack active. Manual spoken-feedback validation remains pending.
+Focused Google-guidance and TalkBack validation is recorded in [accessibility-review.md](accessibility-review.md), including a selected-state semantics fix and seven passing tests with TalkBack active. Manual acceptance was subsequently confirmed by the project owner; see the archive acceptance note below.
 
-Validation performed on 2026-10-20. Implementation is complete; legacy Android TV API coverage remains a separate validation limitation.
+Validation performed on 2026-10-20. Implementation is complete. Agent-run API coverage is recorded separately from the owner-reported final manual acceptance.
 
 ## Environment and automated checks
 
@@ -82,17 +82,21 @@ Representative actual-app captures:
 
 ## Remaining coverage and review
 
-- No device execution on API 21–23, API 24–25, API 26–30, or API 31–35. Compatibility branches were reviewed statically, but API 36 checks do not substitute for those device runs. The legacy API/permission matrix remains unchecked in `tasks.md`.
+- No device execution on API 21–23, API 24–25, API 26–30, or API 31–35. Compatibility branches were reviewed statically, but API 36 checks do not substitute for those device runs. The legacy API/permission task was subsequently closed on owner-reported manual acceptance; this does not extend the agent-run API inventory.
 - Exact-alarm denial/unavailable settings and notification-denial permutations were not fully exercised across TV versions; their existing code paths and translations were preserved. The normal exact-alarm flow was tested with access enabled on the emulator.
 - Preference keys, position IDs/gravity, actions, channel/notification identities, service types, manifest, SDK versions, alarm scheduling, and audio operations retain their existing meanings. No app language preference, locale picker/config declaration, network access, or runtime dependency was added.
 - An IDE deployment-target file changed independently during the session and was left untouched by this implementation.
 
 ## Final follow-up review
 
-OpenSpec progress: 18/20 tasks complete. Remaining: 4.3 (full manual acceptance matrix) and 4.5 (legacy API/permission execution).
+OpenSpec progress: 20/20 tasks complete after owner-reported manual acceptance.
 
 Rebuilt the instrumentation APK after fixing screenshot storage; translation checks, verifier self-tests, unit tests, and debug assembly succeeded with the installed JBR 21.0.11. Android Studio now bundles JBR 25 on this machine, which fails the current Gradle/Kotlin setup before compilation; selecting the existing JBR 21 resolves that environment issue without project changes. Final lint error messages were compared programmatically with the pristine baseline and remain identical (seven errors). Strict OpenSpec validation and `git diff --check` passed.
 
 Final source review confirms resource-backed UI/toast/accessibility consumers, language-independent routing, unchanged existing preference/action constants and notification IDs, and an unchanged manifest. Asset review found only the invariant FloatingClock branding and language-neutral preview artwork. The IDE deployment-target modification was preserved.
 
-The full manual four-language/resolution acceptance pass is distinct from automated traversal plus visual review. Task 4.3 remains open until all manual action/save/cancel cases have been completed. Task 4.5 remains open for missing legacy devices and permission permutations. No old emulator images were downloaded, and the physical Chromecast was not changed.
+The full manual acceptance is distinct from automated traversal plus visual review. The project owner confirmed both changes were manually tested and OK, and requested archive with no pending tasks; tasks 4.3 and 4.5 were closed on that confirmation. No old emulator images were downloaded, and the physical Chromecast was not changed.
+
+## Owner acceptance for archive
+
+On 2026-10-20, the project owner confirmed manual testing of both redesign and multilingual support was OK and requested archiving without pending tasks. All tracked tasks are closed. Detailed devices, API levels, and spoken utterances were not supplied with that confirmation; the agent-run evidence above remains unchanged. Existing lint findings and the separately documented pre-existing alarm-state issue are not represented as fixed by this acceptance.
