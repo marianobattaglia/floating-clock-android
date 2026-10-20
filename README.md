@@ -40,6 +40,47 @@ https://github.com/user-attachments/assets/8370ff31-11fa-409f-b0de-d630d15c747f
 - Alarm sound plays in the background and the overlay clock blinks red while it is active.
 - Alarm can be dismissed by entering the app and selecting the Alarm row.
 
+## Languages
+
+The app follows the Android system language automatically and works offline in
+English, Spanish, Portuguese, and French. Regional settings such as Spanish
+(Argentina), Portuguese (Brazil or Portugal), and French (Canada) use the shared
+language translation. On Android 7+ the system's ordered language preferences are
+used; if none match, app text falls back to English. There is no language selector
+inside the app and no stored language override. Change the language in Android's
+system settings. Existing 12/24-hour and seconds choices remain unchanged.
+
+All app-owned text includes dialogs, previews, accessibility descriptions, permission
+feedback, notifications, and notification channel names. Android controls its own
+permission and Settings screen text. The FloatingClock brand and universal symbols
+(+/−, selection markers, time separators) are intentionally shared.
+
+### Contributing translations
+
+- Canonical English messages: `app/src/main/res/values/strings.xml`.
+- Complete translated catalogs: `values-es`, `values-pt`, and `values-fr` under the
+  same resource directory. Generic language folders cover regional variants.
+- Use semantic `snake_case` resource names and translator comments. Translate whole
+  messages and preserve numbered arguments (`%1$d`, `%2$s`) and literal percent
+  escapes (`%%` in formatted values). Use `formatted="false"` for prose with a
+  literal percent sign that does not accept substitutions. Do not concatenate
+  English word fragments or use displayed text as a navigation identifier.
+- Only documented brand/control-symbol resources can be `translatable="false"`.
+  An English fallback is a runtime safeguard, not a completed translation.
+- To add a language, add a complete `values-<language>/strings.xml`, extend
+  `androidResources.localeFilters` in `app/build.gradle.kts`, update this coverage
+  list and the resource-resolution tests, and verify text/focus on Android TV.
+  Existing clock and alarm logic does not need a language branch.
+
+Run `bash ./gradlew :app:verifyTranslations :app:testTranslationVerifier` to check
+catalog completeness and placeholder compatibility and exercise malformed fixtures.
+These checks also run with `:app:check`. New plurals must provide all applicable
+quantities (including `other`); the current four languages' requirements are
+encoded in `tools/TranslationVerifier.java`. Review those rules when adding a
+language with different plural categories. Android compilation/lint validates
+resource syntax and formatting; inspect Kotlin text consumers too, because equal
+catalog keys cannot detect every hardcoded UI string.
+
 ## How It Works
 
 1) The overlay switch starts a foreground service that draws a small clock window using `SYSTEM_ALERT_WINDOW`.
@@ -104,8 +145,14 @@ bash ./gradlew --version
 bash ./gradlew :app:assembleDebug
 bash ./gradlew :app:lintDebug
 bash ./gradlew :app:testDebugUnitTest
+bash ./gradlew :app:verifyTranslations :app:testTranslationVerifier
+# With an explicitly selected test device:
+ANDROID_SERIAL=emulator-5554 bash ./gradlew :app:connectedDebugAndroidTest
 ```
 
 The debug APK is generated at `app/build/outputs/apk/debug/app-debug.apk`.
-Local regression tests cover appearance preference normalization and geometry. Validate affected remote navigation,
+Local regression tests cover appearance preferences, geometry, and locale-sensitive clock formatting.
+Instrumented tests cover regional/fallback resource resolution, translated dashboard actions,
+remote Select/Back, and notification channel label updates. Run them with each system
+language on an explicitly selected Android TV test device. Validate affected remote navigation,
 overlay and alarm behavior on an Android TV emulator or device as well.

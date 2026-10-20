@@ -19,11 +19,11 @@ const val EXTRA_CLOCK_SHOW_SECONDS = "clock_show_seconds"
 const val ACTION_CLOCK_FORMAT_CHANGED = "com.example.floatingclock.CLOCK_FORMAT_CHANGED"
 const val EXTRA_CLOCK_USE_24H = "clock_use_24h"
 
-enum class FloatingClockPosition(val id: String, val label: String, val gravity: Int) {
-    TOP_LEFT("top_left", "Top left", Gravity.TOP or Gravity.START),
-    TOP_RIGHT("top_right", "Top right", Gravity.TOP or Gravity.END),
-    BOTTOM_LEFT("bottom_left", "Bottom left", Gravity.BOTTOM or Gravity.START),
-    BOTTOM_RIGHT("bottom_right", "Bottom right", Gravity.BOTTOM or Gravity.END);
+enum class FloatingClockPosition(val id: String, val labelRes: Int, val gravity: Int) {
+    TOP_LEFT("top_left", R.string.clock_position_top_left, Gravity.TOP or Gravity.START),
+    TOP_RIGHT("top_right", R.string.clock_position_top_right, Gravity.TOP or Gravity.END),
+    BOTTOM_LEFT("bottom_left", R.string.clock_position_bottom_left, Gravity.BOTTOM or Gravity.START),
+    BOTTOM_RIGHT("bottom_right", R.string.clock_position_bottom_right, Gravity.BOTTOM or Gravity.END);
 
     companion object {
         fun fromId(id: String?): FloatingClockPosition {

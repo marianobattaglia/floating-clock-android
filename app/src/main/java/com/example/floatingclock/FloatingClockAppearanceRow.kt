@@ -16,6 +16,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -70,7 +71,8 @@ fun FloatingClockAppearanceRow() {
         }
     }
     SettingsRow(
-        title = "Clock appearance",
+        title = stringResource(R.string.clock_appearance),
+        setting = DashboardSetting.Appearance,
         modifier = Modifier.focusRequester(rowFocus),
         onClick = {
             appearance = prefs.readClockAppearance()
@@ -78,15 +80,17 @@ fun FloatingClockAppearanceRow() {
             showDialog = true
         }
     ) {
-        Text("${appearance.edgeDistanceDp} dp / ${appearance.scalePercent}% / ${appearance.paddingPercent}%")
+        Text(stringResource(R.string.appearance_summary, appearance.edgeDistanceDp, appearance.scalePercent, appearance.paddingPercent))
     }
     if (showDialog) {
         val close = { showDialog = false }
         SettingsDialog(onDismissRequest = close) {
-            Text("Clock appearance", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.clock_appearance), fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
             AppearanceStepper(
-                label = "Edge distance",
-                value = "${appearance.edgeDistanceDp} dp",
+                label = stringResource(R.string.appearance_edge_distance),
+                decreaseLabel = stringResource(R.string.appearance_decrease_edge),
+                increaseLabel = stringResource(R.string.appearance_increase_edge),
+                value = stringResource(R.string.value_distance_dp, appearance.edgeDistanceDp),
                 decreaseModifier = Modifier.focusRequester(initialFocus),
                 onAdjust = { increase ->
                     save(appearance.copy(edgeDistanceDp = ClockAppearanceLimits.edgeDistance.adjust(
@@ -95,8 +99,10 @@ fun FloatingClockAppearanceRow() {
                 }
             )
             AppearanceStepper(
-                label = "Overall size",
-                value = "${appearance.scalePercent}%",
+                label = stringResource(R.string.appearance_overall_size),
+                decreaseLabel = stringResource(R.string.appearance_decrease_size),
+                increaseLabel = stringResource(R.string.appearance_increase_size),
+                value = stringResource(R.string.value_percent, appearance.scalePercent),
                 onAdjust = { increase ->
                     save(appearance.copy(scalePercent = ClockAppearanceLimits.overallSize.adjust(
                         appearance.scalePercent, increase
@@ -104,16 +110,18 @@ fun FloatingClockAppearanceRow() {
                 }
             )
             AppearanceStepper(
-                label = "Internal spacing",
-                value = "${appearance.paddingPercent}%",
+                label = stringResource(R.string.appearance_internal_spacing),
+                decreaseLabel = stringResource(R.string.appearance_decrease_spacing),
+                increaseLabel = stringResource(R.string.appearance_increase_spacing),
+                value = stringResource(R.string.value_percent, appearance.paddingPercent),
                 onAdjust = { increase ->
                     save(appearance.copy(paddingPercent = ClockAppearanceLimits.internalSpacing.adjust(
                         appearance.paddingPercent, increase
                     )))
                 }
             )
-            Text("100% keeps the original size or spacing. Changes are saved immediately.")
-            Button(onClick = close) { Text("OK") }
+            Text(stringResource(R.string.appearance_help))
+            Button(onClick = close) { Text(stringResource(R.string.action_ok)) }
             LaunchedEffect(Unit) {
                 withFrameNanos { }
                 initialFocus.requestFocus()
@@ -127,6 +135,8 @@ fun FloatingClockAppearanceRow() {
 private fun AppearanceStepper(
     label: String,
     value: String,
+    decreaseLabel: String,
+    increaseLabel: String,
     decreaseModifier: Modifier = Modifier,
     onAdjust: (Boolean) -> Unit
 ) {
@@ -141,14 +151,14 @@ private fun AppearanceStepper(
         ) {
             // Keep both buttons focusable even at a bound; the range makes it a no-op.
             Button(
-                modifier = decreaseModifier.semantics { contentDescription = "Decrease $label" },
+                modifier = decreaseModifier.semantics { contentDescription = decreaseLabel },
                 onClick = { onAdjust(false) }
-            ) { Text("−") }
+            ) { Text(stringResource(R.string.symbol_decrease)) }
             Text(value, modifier = Modifier.width(80.dp))
             Button(
-                modifier = Modifier.semantics { contentDescription = "Increase $label" },
+                modifier = Modifier.semantics { contentDescription = increaseLabel },
                 onClick = { onAdjust(true) }
-            ) { Text("+") }
+            ) { Text(stringResource(R.string.symbol_increase)) }
         }
     }
 }

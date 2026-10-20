@@ -49,20 +49,20 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.tv.material3.*
 import com.example.floatingclock.ui.theme.DashboardColors
 import kotlinx.coroutines.launch
-import java.util.Locale
 import kotlin.math.ceil
 import kotlin.math.min
 
-internal enum class DashboardSetting(val title: String, val subtitle: String, val tint: Color) {
-    Floating("Show Floating Clock", "Keep the time above other apps", Color(0xFF69A5FF)),
-    Position("Clock position", "Choose a corner of your screen", Color(0xFFBE9BFF)),
-    Format("Clock format", "12 or 24 hours, with optional seconds", Color(0xFFFFB56B)),
-    Appearance("Clock appearance", "Edge distance, size and internal spacing", Color(0xFF64D7BD)),
-    Alarm("Alarm", "Set a reminder for later", Color(0xFFFF8E9D));
+internal enum class DashboardSetting(val titleRes: Int, val subtitleRes: Int, val tint: Color) {
+    Floating(R.string.clock_show_floating, R.string.clock_floating_subtitle, Color(0xFF69A5FF)),
+    Position(R.string.clock_position, R.string.clock_position_subtitle, Color(0xFFBE9BFF)),
+    Format(R.string.clock_format, R.string.clock_format_subtitle, Color(0xFFFFB56B)),
+    Appearance(R.string.clock_appearance, R.string.clock_appearance_subtitle, Color(0xFF64D7BD)),
+    Alarm(R.string.alarm_title, R.string.alarm_subtitle, Color(0xFFFF8E9D))
+}
 
-    companion object {
-        fun forTitle(title: String) = entries.firstOrNull { it.title == title }
-    }
+private enum class DashboardShortcut(val labelRes: Int, val icon: String) {
+    Home(R.string.nav_home, "home"),
+    Settings(R.string.nav_settings, "settings")
 }
 
 internal val LocalPreviewSelection = compositionLocalOf<(DashboardSetting) -> Unit> { {} }
@@ -78,7 +78,7 @@ internal fun ClockDashboard(
 ) {
     var selected by remember { mutableStateOf<DashboardSetting?>(null) }
     var clockTime by remember { mutableStateOf("") }
-    var activeShortcut by remember { mutableStateOf("Home") }
+    var activeShortcut by remember { mutableStateOf(DashboardShortcut.Home) }
     val firstSetting = remember { FocusRequester() }
     val scroll = rememberScrollState()
     val scope = rememberCoroutineScope()
@@ -96,7 +96,7 @@ internal fun ClockDashboard(
         )
     ) {
         Column(
-            modifier = Modifier.fillMaxHeight().width(76.dp)
+            modifier = Modifier.fillMaxHeight().width(92.dp)
                 .background(DashboardColors.Rail).padding(vertical = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(20.dp)
@@ -107,18 +107,18 @@ internal fun ClockDashboard(
                 modifier = Modifier.size(36.dp).clip(RoundedCornerShape(10.dp))
             )
             Spacer(Modifier.height(8.dp))
-            listOf("Home", "Settings").forEach { shortcut ->
+            DashboardShortcut.entries.forEach { shortcut ->
                 val activate = {
                     activeShortcut = shortcut
                     scope.launch {
                         scroll.animateScrollTo(0)
-                        if (shortcut == "Settings") firstSetting.requestFocus()
+                        if (shortcut == DashboardShortcut.Settings) firstSetting.requestFocus()
                     }
                     Unit
                 }
                 Surface(
                     onClick = activate,
-                    modifier = Modifier.width(62.dp).dashboardTap(activate),
+                    modifier = Modifier.width(78.dp).dashboardTap(activate),
                     shape = ClickableSurfaceDefaults.shape(RoundedCornerShape(12.dp)),
                     colors = ClickableSurfaceDefaults.colors(
                         containerColor = if (activeShortcut == shortcut) DashboardColors.Surface else Color.Transparent,
@@ -134,8 +134,8 @@ internal fun ClockDashboard(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        DashboardIcon(if (shortcut == "Home") "home" else "settings", Modifier.size(20.dp))
-                        Text(shortcut, fontSize = 10.sp)
+                        DashboardIcon(shortcut.icon, Modifier.size(20.dp))
+                        Text(stringResource(shortcut.labelRes), fontSize = 10.sp)
                     }
                 }
             }
@@ -151,7 +151,7 @@ internal fun ClockDashboard(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(stringResource(R.string.app_name), style = MaterialTheme.typography.titleLarge)
-                    Text("Your time, always in view", color = DashboardColors.Muted, fontSize = 12.sp)
+                    Text(stringResource(R.string.dashboard_tagline), color = DashboardColors.Muted, fontSize = 12.sp)
                 }
                 clock(!floatingEnabled) { clockTime = it }
             }
@@ -195,9 +195,9 @@ internal fun DashboardSettingsRow(
     title: String,
     onClick: () -> Unit,
     modifier: Modifier,
+    setting: DashboardSetting?,
     trailing: @Composable RowScope.() -> Unit
 ) {
-    val setting = DashboardSetting.forTitle(title)
     val selectPreview = LocalPreviewSelection.current
     val selected = setting != null && LocalSelectedPreview.current == setting
     val firstFocus = LocalFirstSettingFocus.current
@@ -246,7 +246,7 @@ internal fun DashboardSettingsRow(
             }
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text(title, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                if (setting != null) Text(setting.subtitle, color = DashboardColors.Muted, fontSize = 10.sp, lineHeight = 13.sp)
+                if (setting != null) Text(stringResource(setting.subtitleRes), color = DashboardColors.Muted, fontSize = 10.sp, lineHeight = 13.sp)
             }
             ProvideTextStyle(MaterialTheme.typography.labelLarge.copy(fontSize = 11.sp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, content = trailing)
@@ -331,7 +331,7 @@ private fun ClockPreviewPanel(selected: DashboardSetting?, clockTime: String, fl
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             DashboardIcon("preview", Modifier.size(19.dp), DashboardColors.Accent)
-            Text("Preview", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.preview_title), fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         }
         if (selected == null) {
             Box(
@@ -341,16 +341,16 @@ private fun ClockPreviewPanel(selected: DashboardSetting?, clockTime: String, fl
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     DashboardIcon("Floating", Modifier.size(36.dp), DashboardColors.Muted)
-                    Text("Select a setting", color = DashboardColors.Muted, fontSize = 13.sp)
+                    Text(stringResource(R.string.preview_select_setting), color = DashboardColors.Muted, fontSize = 13.sp)
                 }
             }
-            Text("A preview of your current settings appears here.", color = DashboardColors.Muted, fontSize = 12.sp)
+            Text(stringResource(R.string.preview_empty_hint), color = DashboardColors.Muted, fontSize = 12.sp)
         } else {
-            Text(selected.title, fontSize = 13.sp, color = selected.tint)
+            Text(stringResource(selected.titleRes), fontSize = 13.sp, color = selected.tint)
             if (selected == DashboardSetting.Alarm) {
                 val hour = values[PREF_ALARM_HOUR] as? Int ?: -1
                 val minute = values[PREF_ALARM_MINUTE] as? Int ?: -1
-                val alarmTime = if (hour >= 0 && minute >= 0) String.format(Locale.getDefault(), "%02d:%02d", hour, minute) else "--:--"
+                val alarmTime = if (hour >= 0 && minute >= 0) String.format(configurationLocale(LocalConfiguration.current), "%02d:%02d", hour, minute) else stringResource(R.string.time_unset)
                 Box(
                     Modifier.fillMaxWidth().aspectRatio(16f / 9f)
                         .background(DashboardColors.Background, RoundedCornerShape(10.dp)),
@@ -358,25 +358,25 @@ private fun ClockPreviewPanel(selected: DashboardSetting?, clockTime: String, fl
                 ) {
                     Text(alarmTime, fontSize = 36.sp, fontWeight = FontWeight.Light)
                 }
-                PreviewValue("Alarm", if (values[PREF_ALARM_ENABLED] == true) "On" else "Off")
+                PreviewValue(stringResource(R.string.alarm_title), if (values[PREF_ALARM_ENABLED] == true) stringResource(R.string.status_on) else stringResource(R.string.status_off))
             } else {
-                MiniatureClockScene(position, appearance, clockTime.ifEmpty { "--:--" }, floatingEnabled)
+                MiniatureClockScene(position, appearance, clockTime.ifEmpty { stringResource(R.string.time_unset) }, floatingEnabled)
                 when (selected) {
-                    DashboardSetting.Floating -> PreviewValue("Floating clock", if (floatingEnabled) "On" else "Off")
-                    DashboardSetting.Position -> PreviewValue("Position", position.label)
+                    DashboardSetting.Floating -> PreviewValue(stringResource(R.string.preview_floating_clock), if (floatingEnabled) stringResource(R.string.status_on) else stringResource(R.string.status_off))
+                    DashboardSetting.Position -> PreviewValue(stringResource(R.string.preview_position), stringResource(position.labelRes))
                     DashboardSetting.Format -> {
-                        PreviewValue("Format", if (use24h) "24-hour" else "12-hour")
-                        PreviewValue("Seconds", if (seconds) "Shown" else "Hidden")
+                        PreviewValue(stringResource(R.string.preview_format), if (use24h) stringResource(R.string.clock_format_24_hour) else stringResource(R.string.clock_format_12_hour))
+                        PreviewValue(stringResource(R.string.preview_seconds), if (seconds) stringResource(R.string.status_shown) else stringResource(R.string.status_hidden))
                     }
                     DashboardSetting.Appearance -> {
-                        PreviewValue("Edge distance", "${appearance.edgeDistanceDp} dp")
-                        PreviewValue("Overall size", "${appearance.scalePercent}%")
-                        PreviewValue("Internal spacing", "${appearance.paddingPercent}%")
+                        PreviewValue(stringResource(R.string.appearance_edge_distance), stringResource(R.string.value_distance_dp, appearance.edgeDistanceDp))
+                        PreviewValue(stringResource(R.string.appearance_overall_size), stringResource(R.string.value_percent, appearance.scalePercent))
+                        PreviewValue(stringResource(R.string.appearance_internal_spacing), stringResource(R.string.value_percent, appearance.paddingPercent))
                     }
                     else -> Unit
                 }
             }
-            Text("Preview of your saved settings", color = DashboardColors.Muted, fontSize = 10.sp)
+            Text(stringResource(R.string.preview_saved_hint), color = DashboardColors.Muted, fontSize = 10.sp)
         }
     }
 }
@@ -385,8 +385,8 @@ private fun ClockPreviewPanel(selected: DashboardSetting?, clockTime: String, fl
 @Composable
 private fun PreviewValue(label: String, value: String) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(label, color = DashboardColors.Muted, fontSize = 11.sp)
-        Text(value, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+        Text(label, modifier = Modifier.weight(1f), color = DashboardColors.Muted, fontSize = 11.sp)
+        Text(value, modifier = Modifier.weight(1f), fontSize = 11.sp, fontWeight = FontWeight.Medium, textAlign = androidx.compose.ui.text.style.TextAlign.End)
     }
 }
 

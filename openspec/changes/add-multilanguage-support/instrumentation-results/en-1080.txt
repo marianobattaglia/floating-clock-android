@@ -1,0 +1,8 @@
+
+com.example.floatingclock.LocalizationTest:...
+com.example.floatingclock.NotificationLocalizationTest:.
+com.example.floatingclock.TranslatedDashboardTest:...
+
+Time: 11.307
+
+OK (7 tests)

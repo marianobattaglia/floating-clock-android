@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
@@ -46,7 +47,10 @@ import com.example.floatingclock.ui.theme.DashboardColors
 import com.example.floatingclock.ui.theme.FloatingClockTheme
 import java.util.Calendar
 import java.util.Date
-import java.util.Locale
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
 import java.text.SimpleDateFormat
 import kotlinx.coroutines.delay
 import android.content.BroadcastReceiver
@@ -55,6 +59,11 @@ import android.app.ActivityManager
 import android.text.format.DateFormat
 
 class MainActivity : ComponentActivity() {
+    override fun onResume() {
+        super.onResume()
+        synchronizeNotificationChannelNames(this)
+    }
+
     @OptIn(ExperimentalTvMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -179,15 +188,11 @@ fun Clock(
         onDispose { context.unregisterReceiver(receiver) }
     }
 
-    LaunchedEffect(showSeconds, use24h) {
+    val locale = configurationLocale(LocalConfiguration.current)
+    LaunchedEffect(showSeconds, use24h, locale) {
         while (true) {
-            val pattern = when {
-                use24h && showSeconds -> "HH:mm:ss"
-                use24h -> "HH:mm"
-                showSeconds -> "hh:mm:ss a"
-                else -> "hh:mm a"
-            }
-            val formatter = SimpleDateFormat(pattern, Locale.getDefault())
+            val pattern = clockPattern(use24h, showSeconds)
+            val formatter = SimpleDateFormat(pattern, locale)
             time = formatter.format(Date())
             delay(1000)
         }
@@ -230,7 +235,7 @@ fun FloatingClockSwitch(
         if (!Settings.canDrawOverlays(context)) {
             Toast.makeText(
                 context,
-                "Overlay permission not granted.",
+                context.getString(R.string.permission_overlay_denied),
                 Toast.LENGTH_LONG
             ).show()
             return@rememberLauncherForActivityResult
@@ -260,7 +265,7 @@ fun FloatingClockSwitch(
                 notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                 Toast.makeText(
                     context,
-                    "Notification permission is required to start the floating clock.",
+                    context.getString(R.string.permission_notification_required),
                     Toast.LENGTH_LONG
                 ).show()
                 return@onToggle
@@ -287,7 +292,7 @@ fun FloatingClockSwitch(
                 }
                 Toast.makeText(
                     context,
-                    "Overlay permission not granted.",
+                    context.getString(R.string.permission_overlay_denied),
                     Toast.LENGTH_LONG
                 ).show()
                 return@onToggle
@@ -308,7 +313,8 @@ fun FloatingClockSwitch(
     }
 
     SettingsRow(
-        title = "Show Floating Clock",
+        title = stringResource(R.string.clock_show_floating),
+        setting = DashboardSetting.Floating,
         onClick = { onToggle(!isChecked) }
     ) {
         Switch(
@@ -327,13 +333,14 @@ private fun isServiceRunning(context: Context, serviceClass: Class<*>): Boolean 
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
-fun SettingsRow(
+internal fun SettingsRow(
     title: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    setting: DashboardSetting? = null,
     trailing: @Composable RowScope.() -> Unit
 ) {
-    DashboardSettingsRow(title, onClick, modifier, trailing)
+    DashboardSettingsRow(title, onClick, modifier, setting, trailing)
 }
 
 @OptIn(ExperimentalTvMaterial3Api::class)
@@ -373,15 +380,16 @@ fun FloatingClockPositionRow() {
 
     val currentPosition = FloatingClockPosition.fromId(positionId)
     SettingsRow(
-        title = "Clock position",
+        title = stringResource(R.string.clock_position),
+        setting = DashboardSetting.Position,
         onClick = { showDialog = true }
     ) {
-        Text(text = currentPosition.label)
+        Text(text = stringResource(currentPosition.labelRes))
     }
 
     if (showDialog) {
         SettingsDialog(onDismissRequest = { showDialog = false }) {
-            Text(text = "Select clock position", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+            Text(text = stringResource(R.string.clock_select_position), fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
             val applySelection: (FloatingClockPosition) -> Unit = { position ->
                 dialogPosition = position
                 positionId = position.id
@@ -405,10 +413,12 @@ fun FloatingClockPositionRow() {
                     ) {
                         PositionButton(
                             selected = dialogPosition == FloatingClockPosition.TOP_LEFT,
+                            label = stringResource(FloatingClockPosition.TOP_LEFT.labelRes),
                             onClick = { applySelection(FloatingClockPosition.TOP_LEFT) }
                         )
                         PositionButton(
                             selected = dialogPosition == FloatingClockPosition.TOP_RIGHT,
+                            label = stringResource(FloatingClockPosition.TOP_RIGHT.labelRes),
                             onClick = { applySelection(FloatingClockPosition.TOP_RIGHT) }
                         )
                     }
@@ -418,10 +428,12 @@ fun FloatingClockPositionRow() {
                     ) {
                         PositionButton(
                             selected = dialogPosition == FloatingClockPosition.BOTTOM_LEFT,
+                            label = stringResource(FloatingClockPosition.BOTTOM_LEFT.labelRes),
                             onClick = { applySelection(FloatingClockPosition.BOTTOM_LEFT) }
                         )
                         PositionButton(
                             selected = dialogPosition == FloatingClockPosition.BOTTOM_RIGHT,
+                            label = stringResource(FloatingClockPosition.BOTTOM_RIGHT.labelRes),
                             onClick = { applySelection(FloatingClockPosition.BOTTOM_RIGHT) }
                         )
                     }
@@ -432,7 +444,7 @@ fun FloatingClockPositionRow() {
                 horizontalArrangement = Arrangement.Center
             ) {
                 Button(onClick = { showDialog = false }) {
-                    Text("OK")
+                    Text(stringResource(R.string.action_ok))
                 }
             }
         }
@@ -476,18 +488,19 @@ fun FloatingClockFormatRow() {
     }
 
     SettingsRow(
-        title = "Clock format",
+        title = stringResource(R.string.clock_format),
+        setting = DashboardSetting.Format,
         onClick = { showDialog = true }
     ) {
-        val label = if (use24h) "24-hour" else "12-hour"
+        val label = if (use24h) stringResource(R.string.clock_format_24_hour) else stringResource(R.string.clock_format_12_hour)
         Text(text = label)
     }
 
     if (showDialog) {
         SettingsDialog(onDismissRequest = { showDialog = false }) {
-            Text(text = "Clock format", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+            Text(text = stringResource(R.string.clock_format), fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
             SettingsRow(
-                title = "Show seconds",
+                title = stringResource(R.string.clock_show_seconds),
                 onClick = {
                     val newValue = !showSeconds
                     showSeconds = newValue
@@ -505,7 +518,7 @@ fun FloatingClockFormatRow() {
                 )
             }
             SettingsRow(
-                title = "Use 24-hour format",
+                title = stringResource(R.string.clock_use_24_hour),
                 onClick = {
                     val newValue = !use24h
                     use24h = newValue
@@ -527,7 +540,7 @@ fun FloatingClockFormatRow() {
                 horizontalArrangement = Arrangement.Center
             ) {
                 Button(onClick = { showDialog = false }) {
-                    Text("OK")
+                    Text(stringResource(R.string.action_ok))
                 }
             }
         }
@@ -536,9 +549,12 @@ fun FloatingClockFormatRow() {
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
-fun PositionButton(selected: Boolean, onClick: () -> Unit) {
-    Button(onClick = onClick) {
-        Text(if (selected) "X" else " ")
+fun PositionButton(selected: Boolean, label: String, onClick: () -> Unit) {
+    Button(onClick = onClick, modifier = Modifier.semantics {
+        contentDescription = label
+        this.selected = selected
+    }) {
+        Text(stringResource(if (selected) R.string.symbol_selected else R.string.symbol_unselected))
     }
 }
 
@@ -591,7 +607,8 @@ fun AlarmConfigRow() {
 
     val selectPreview = LocalPreviewSelection.current
     SettingsRow(
-        title = "Alarm",
+        title = stringResource(R.string.alarm_title),
+        setting = DashboardSetting.Alarm,
         onClick = {
             if (alarmActive) {
                 AlarmScheduler.cancelAlarm(context)
@@ -629,7 +646,7 @@ fun AlarmConfigRow() {
                     if (!success) {
                         Toast.makeText(
                             context,
-                            "Alarm scheduling is not available on this device.",
+                            context.getString(R.string.alarm_scheduling_unavailable),
                             Toast.LENGTH_LONG
                         ).show()
                         return@Switch
@@ -645,42 +662,50 @@ fun AlarmConfigRow() {
 
     if (showDialog) {
         SettingsDialog(onDismissRequest = { showDialog = false }) {
-            Text(text = "Configure alarm", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+            Text(text = stringResource(R.string.alarm_configure), fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
             Row(
                 modifier = Modifier.padding(top = 16.dp, bottom = 24.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Button(onClick = { dialogHour = (dialogHour + 1) % 24 }) {
-                        Text("+")
+                    val increaseHour = stringResource(R.string.alarm_increase_hour)
+                    Button(onClick = { dialogHour = (dialogHour + 1) % 24 },
+                        modifier = Modifier.semantics { contentDescription = increaseHour }) {
+                        Text(stringResource(R.string.symbol_increase))
                     }
                     Text(
-                        text = String.format("%02d", dialogHour),
+                        text = String.format(configurationLocale(LocalConfiguration.current), "%02d", dialogHour),
                         fontSize = 32.sp,
                         fontWeight = FontWeight.Bold
                     )
-                    Button(onClick = { dialogHour = (dialogHour + 23) % 24 }) {
-                        Text("-")
+                    val decreaseHour = stringResource(R.string.alarm_decrease_hour)
+                    Button(onClick = { dialogHour = (dialogHour + 23) % 24 },
+                        modifier = Modifier.semantics { contentDescription = decreaseHour }) {
+                        Text(stringResource(R.string.symbol_decrease))
                     }
                 }
                 Text(
-                    text = ":",
+                    text = stringResource(R.string.time_separator),
                     fontSize = 32.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(horizontal = 12.dp)
                 )
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Button(onClick = { dialogMinute = (dialogMinute + 1) % 60 }) {
-                        Text("+")
+                    val increaseMinute = stringResource(R.string.alarm_increase_minute)
+                    Button(onClick = { dialogMinute = (dialogMinute + 1) % 60 },
+                        modifier = Modifier.semantics { contentDescription = increaseMinute }) {
+                        Text(stringResource(R.string.symbol_increase))
                     }
                     Text(
-                        text = String.format("%02d", dialogMinute),
+                        text = String.format(configurationLocale(LocalConfiguration.current), "%02d", dialogMinute),
                         fontSize = 32.sp,
                         fontWeight = FontWeight.Bold
                     )
-                    Button(onClick = { dialogMinute = (dialogMinute + 59) % 60 }) {
-                        Text("-")
+                    val decreaseMinute = stringResource(R.string.alarm_decrease_minute)
+                    Button(onClick = { dialogMinute = (dialogMinute + 59) % 60 },
+                        modifier = Modifier.semantics { contentDescription = decreaseMinute }) {
+                        Text(stringResource(R.string.symbol_decrease))
                     }
                 }
             }
@@ -705,7 +730,7 @@ fun AlarmConfigRow() {
                     if (!success) {
                         Toast.makeText(
                             context,
-                            "Alarm scheduling is not available on this device.",
+                            context.getString(R.string.alarm_scheduling_unavailable),
                             Toast.LENGTH_LONG
                         ).show()
                         return@Button
@@ -720,7 +745,7 @@ fun AlarmConfigRow() {
                         .apply()
                     showDialog = false
                 }) {
-                    Text("ACTIVATE")
+                    Text(stringResource(R.string.action_activate))
                 }
                 Button(onClick = {
                     AlarmScheduler.cancelAlarm(context)
@@ -730,7 +755,7 @@ fun AlarmConfigRow() {
                         .apply()
                     showDialog = false
                 }) {
-                    Text("CANCEL")
+                    Text(stringResource(R.string.action_cancel))
                 }
             }
         }
