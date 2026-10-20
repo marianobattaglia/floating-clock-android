@@ -7,10 +7,16 @@ import android.content.Intent
 import android.os.Build
 import java.util.Calendar
 
+enum class AlarmScheduleResult {
+    EXACT,
+    APPROXIMATE,
+    FAILED
+}
+
 object AlarmScheduler {
     private const val ALARM_REQUEST_CODE = 1001
 
-    fun scheduleAlarm(context: Context, hour: Int, minute: Int): Boolean {
+    fun scheduleAlarm(context: Context, hour: Int, minute: Int): AlarmScheduleResult {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
         val triggerAtMillis = nextTriggerMillis(hour, minute)
@@ -26,20 +32,38 @@ object AlarmScheduler {
             alarmManager.canScheduleExactAlarms()
 
         if (exactAllowed) {
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    alarmManager.setExactAndAllowWhileIdle(
+                        AlarmManager.RTC_WAKEUP,
+                        triggerAtMillis,
+                        pendingIntent
+                    )
+                } else {
+                    alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
+                }
+                return AlarmScheduleResult.EXACT
+            } catch (_: SecurityException) {
+                // Exact-alarm access can change after the permission check.
+            } catch (_: RuntimeException) {
+                return AlarmScheduleResult.FAILED
+            }
+        }
+
+        return try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                alarmManager.setExactAndAllowWhileIdle(
+                alarmManager.setAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,
                     triggerAtMillis,
                     pendingIntent
                 )
             } else {
-                alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
+                alarmManager.set(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
             }
-        } else {
-            val info = AlarmManager.AlarmClockInfo(triggerAtMillis, pendingIntent)
-            alarmManager.setAlarmClock(info, pendingIntent)
+            AlarmScheduleResult.APPROXIMATE
+        } catch (_: RuntimeException) {
+            AlarmScheduleResult.FAILED
         }
-        return true
     }
 
     fun needsExactAlarmPermission(context: Context): Boolean {

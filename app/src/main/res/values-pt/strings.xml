@@ -59,6 +59,8 @@
     <string name="permission_overlay_denied">A permissão para mostrar sobre outras aplicações não foi concedida.</string>
     <string name="permission_notification_required">É necessária a permissão de notificações para iniciar o relógio flutuante.</string>
     <string name="alarm_scheduling_unavailable">Não é possível programar alarmes neste dispositivo.</string>
+    <string name="alarm_exact_access_missing">O acesso a alarmes exatas está desativado. Este alarme pode tocar depois do horário escolhido.</string>
+    <string name="alarm_scheduling_approximate">Alarme programado, mas pode tocar depois do horário escolhido.</string>
     <string name="clock_notification_title">Relógio flutuante</string>
     <string name="clock_notification_body">O relógio flutuante está em execução.</string>
     <string name="clock_notification_channel">Serviço do relógio flutuante</string>

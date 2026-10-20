@@ -94,7 +94,7 @@ catalog keys cannot detect every hardcoded UI string.
 - `FOREGROUND_SERVICE` and `FOREGROUND_SERVICE_SPECIAL_USE`: Required for the overlay service.
 - `FOREGROUND_SERVICE_MEDIA_PLAYBACK`: Required for the alarm sound service.
 - `POST_NOTIFICATIONS`: Required on Android 13+ for foreground service notifications.
-- `SCHEDULE_EXACT_ALARM`: Used when available to schedule exact alarms.
+- `SCHEDULE_EXACT_ALARM`: On Android 12+, requested when opening Alarm if exact access is missing. It is not needed to show the floating clock.
 
 ## Usage
 
@@ -102,8 +102,8 @@ catalog keys cannot detect every hardcoded UI string.
 2) Use **Clock position** to choose a corner for the overlay.
 3) Use **Clock format** to toggle 12/24-hour format and show/hide seconds.
 4) Use **Clock appearance** to change **Edge distance** (0–128 dp, steps of 4 dp, default 16 dp), **Overall size** (50–200%, steps of 10%, default 100%), and **Internal spacing** (0–300%, steps of 10%, default 100%) with the remote’s **−** and **+** buttons.
-5) Go to **Alarm** row to set the alarm time.
-6) Press **ACTIVATE** to schedule the alarm or **CANCEL** to disable it.
+5) Select the **Alarm** row to set the alarm time. On Android 12+, if exact-alarm access is missing, system settings opens before the configuration dialog. Returning without granting access still lets you configure an alarm with approximate timing.
+6) Press **ACTIVATE** to schedule the alarm or **CANCEL** to disable it. Without exact-alarm access, an inexact best-effort alarm is used and may ring later than selected.
 7) When the alarm rings, the overlay clock blinks red and an alarm sound plays.
 8) Open the app and select the **Alarm** row to stop the alarm immediately.
 
@@ -113,7 +113,7 @@ Appearance changes apply and save immediately. **OK** or Back closes the modal a
 
 See [AGENTS.md](AGENTS.md) for Codex guidance and development checks.
 
-- On some Android TV devices or emulators, exact alarms may not be allowed. In that case, the app falls back to a best-effort schedule.
+- On some Android TV devices or emulators, exact alarms may not be allowed or the settings screen may be unavailable. In that case, the app falls back to an inexact best-effort schedule, which may be delayed.
 - If the emulator has no default alarm sound, the app falls back to a simple beep tone.
 
 ## Dashboard layout
