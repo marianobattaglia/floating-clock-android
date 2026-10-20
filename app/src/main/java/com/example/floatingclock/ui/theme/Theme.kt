@@ -1,33 +1,26 @@
 package com.example.floatingclock.ui.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.darkColorScheme
-import androidx.tv.material3.lightColorScheme
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
-fun FloatingClockTheme(
-    isInDarkTheme: Boolean = isSystemInDarkTheme(),
-    content: @Composable () -> Unit,
-) {
-    val colorScheme = if (isInDarkTheme) {
-        darkColorScheme(
-            primary = Purple80,
-            secondary = PurpleGrey80,
-            tertiary = Pink80
-        )
-    } else {
-        lightColorScheme(
-            primary = Purple40,
-            secondary = PurpleGrey40,
-            tertiary = Pink40
-        )
-    }
+fun FloatingClockTheme(content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = colorScheme,
+        colorScheme = darkColorScheme(
+            primary = DashboardColors.Accent,
+            onPrimary = DashboardColors.Rail,
+            secondary = DashboardColors.Accent,
+            background = DashboardColors.Background,
+            onBackground = DashboardColors.Text,
+            surface = DashboardColors.Surface,
+            onSurface = DashboardColors.Text,
+            surfaceVariant = DashboardColors.Panel,
+            onSurfaceVariant = DashboardColors.Muted,
+            border = DashboardColors.Border
+        ),
         typography = Typography,
         content = content
     )

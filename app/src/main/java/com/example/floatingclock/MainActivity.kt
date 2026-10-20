@@ -13,8 +13,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,7 +27,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -36,7 +34,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -45,6 +42,7 @@ import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.Surface
 import androidx.tv.material3.Switch
 import androidx.tv.material3.Text
+import com.example.floatingclock.ui.theme.DashboardColors
 import com.example.floatingclock.ui.theme.FloatingClockTheme
 import java.util.Calendar
 import java.util.Date
@@ -89,12 +87,10 @@ fun MainScreen() {
         }
     }
 
-    Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(vertical = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+    ClockDashboard(
+        floatingEnabled = floatingEnabled,
+        clock = { visible, onTimeChanged -> Clock(onTimeChanged = onTimeChanged, visible = visible) }
     ) {
-        Clock()
         FloatingClockSwitch(
             isChecked = floatingEnabled,
             setFloatingEnabled = setFloatingEnabled
@@ -118,7 +114,11 @@ fun MainScreen() {
 
 
 @Composable
-fun Clock(modifier: Modifier = Modifier) {
+fun Clock(
+    modifier: Modifier = Modifier,
+    onTimeChanged: (String) -> Unit = {},
+    visible: Boolean = true
+) {
     var time by remember { mutableStateOf("") }
     val context = LocalContext.current
     val prefs = remember(context) {
@@ -193,15 +193,20 @@ fun Clock(modifier: Modifier = Modifier) {
         }
     }
 
-    Box(
-        modifier = modifier.padding(32.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = time,
-            fontSize = 48.sp,
-            fontWeight = FontWeight.Bold
-        )
+    val formattedTime = time
+    SideEffect { onTimeChanged(formattedTime) }
+
+    if (visible) {
+        Box(
+            modifier = modifier.padding(horizontal = 4.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = time,
+                fontSize = 36.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
     }
 }
 
@@ -240,7 +245,9 @@ fun FloatingClockSwitch(
         }
     }
 
+    val selectPreview = LocalPreviewSelection.current
     val onToggle: (Boolean) -> Unit = onToggle@{ checked ->
+        selectPreview(DashboardSetting.Floating)
         if (checked) {
             if (
                 Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -326,26 +333,7 @@ fun SettingsRow(
     modifier: Modifier = Modifier,
     trailing: @Composable RowScope.() -> Unit
 ) {
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 48.dp, vertical = 12.dp),
-        onClick = onClick
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(text = title)
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                content = trailing
-            )
-        }
-    }
+    DashboardSettingsRow(title, onClick, modifier, trailing)
 }
 
 @OptIn(ExperimentalTvMaterial3Api::class)
@@ -392,66 +380,59 @@ fun FloatingClockPositionRow() {
     }
 
     if (showDialog) {
-        Dialog(onDismissRequest = { showDialog = false }) {
-            Surface(modifier = Modifier.padding(24.dp)) {
+        SettingsDialog(onDismissRequest = { showDialog = false }) {
+            Text(text = "Select clock position", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+            val applySelection: (FloatingClockPosition) -> Unit = { position ->
+                dialogPosition = position
+                positionId = position.id
+                prefs.edit().putString(PREF_CLOCK_POSITION, positionId).apply()
+                notifyClockPositionChanged(context, position)
+            }
+            Box(
+                modifier = Modifier
+                    .padding(top = 16.dp, bottom = 24.dp)
+                    .size(240.dp, 160.dp)
+                    .border(1.dp, DashboardColors.Accent, RoundedCornerShape(12.dp)),
+                contentAlignment = Alignment.Center
+            ) {
                 Column(
-                    modifier = Modifier.padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    verticalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxSize().padding(16.dp)
                 ) {
-                    Text(text = "Select clock position")
-                    val applySelection: (FloatingClockPosition) -> Unit = { position ->
-                        dialogPosition = position
-                        positionId = position.id
-                        prefs.edit().putString(PREF_CLOCK_POSITION, positionId).apply()
-                        notifyClockPositionChanged(context, position)
-                    }
-                    Box(
-                        modifier = Modifier
-                            .padding(top = 16.dp, bottom = 24.dp)
-                            .size(240.dp, 160.dp)
-                            .border(2.dp, Color.White),
-                        contentAlignment = Alignment.Center
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Column(
-                            verticalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxSize().padding(16.dp)
-                        ) {
-                            Row(
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                PositionButton(
-                                    selected = dialogPosition == FloatingClockPosition.TOP_LEFT,
-                                    onClick = { applySelection(FloatingClockPosition.TOP_LEFT) }
-                                )
-                                PositionButton(
-                                    selected = dialogPosition == FloatingClockPosition.TOP_RIGHT,
-                                    onClick = { applySelection(FloatingClockPosition.TOP_RIGHT) }
-                                )
-                            }
-                            Row(
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                PositionButton(
-                                    selected = dialogPosition == FloatingClockPosition.BOTTOM_LEFT,
-                                    onClick = { applySelection(FloatingClockPosition.BOTTOM_LEFT) }
-                                )
-                                PositionButton(
-                                    selected = dialogPosition == FloatingClockPosition.BOTTOM_RIGHT,
-                                    onClick = { applySelection(FloatingClockPosition.BOTTOM_RIGHT) }
-                                )
-                            }
-                        }
+                        PositionButton(
+                            selected = dialogPosition == FloatingClockPosition.TOP_LEFT,
+                            onClick = { applySelection(FloatingClockPosition.TOP_LEFT) }
+                        )
+                        PositionButton(
+                            selected = dialogPosition == FloatingClockPosition.TOP_RIGHT,
+                            onClick = { applySelection(FloatingClockPosition.TOP_RIGHT) }
+                        )
                     }
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Button(onClick = { showDialog = false }) {
-                            Text("OK")
-                        }
+                        PositionButton(
+                            selected = dialogPosition == FloatingClockPosition.BOTTOM_LEFT,
+                            onClick = { applySelection(FloatingClockPosition.BOTTOM_LEFT) }
+                        )
+                        PositionButton(
+                            selected = dialogPosition == FloatingClockPosition.BOTTOM_RIGHT,
+                            onClick = { applySelection(FloatingClockPosition.BOTTOM_RIGHT) }
+                        )
                     }
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Button(onClick = { showDialog = false }) {
+                    Text("OK")
                 }
             }
         }
@@ -503,57 +484,50 @@ fun FloatingClockFormatRow() {
     }
 
     if (showDialog) {
-        Dialog(onDismissRequest = { showDialog = false }) {
-            Surface(modifier = Modifier.padding(24.dp)) {
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(text = "Clock format")
-                    SettingsRow(
-                        title = "Show seconds",
-                        onClick = {
-                            val newValue = !showSeconds
-                            showSeconds = newValue
-                            prefs.edit().putBoolean(PREF_CLOCK_SHOW_SECONDS, newValue).apply()
-                            notifyClockSecondsChanged(context, newValue)
-                        }
-                    ) {
-                        Switch(
-                            checked = showSeconds,
-                            onCheckedChange = { checked ->
-                                showSeconds = checked
-                                prefs.edit().putBoolean(PREF_CLOCK_SHOW_SECONDS, checked).apply()
-                                notifyClockSecondsChanged(context, checked)
-                            }
-                        )
+        SettingsDialog(onDismissRequest = { showDialog = false }) {
+            Text(text = "Clock format", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+            SettingsRow(
+                title = "Show seconds",
+                onClick = {
+                    val newValue = !showSeconds
+                    showSeconds = newValue
+                    prefs.edit().putBoolean(PREF_CLOCK_SHOW_SECONDS, newValue).apply()
+                    notifyClockSecondsChanged(context, newValue)
+                }
+            ) {
+                Switch(
+                    checked = showSeconds,
+                    onCheckedChange = { checked ->
+                        showSeconds = checked
+                        prefs.edit().putBoolean(PREF_CLOCK_SHOW_SECONDS, checked).apply()
+                        notifyClockSecondsChanged(context, checked)
                     }
-                    SettingsRow(
-                        title = "Use 24-hour format",
-                        onClick = {
-                            val newValue = !use24h
-                            use24h = newValue
-                            prefs.edit().putBoolean(PREF_CLOCK_USE_24H, newValue).apply()
-                            notifyClockFormatChanged(context, newValue)
-                        }
-                    ) {
-                        Switch(
-                            checked = use24h,
-                            onCheckedChange = { checked ->
-                                use24h = checked
-                                prefs.edit().putBoolean(PREF_CLOCK_USE_24H, checked).apply()
-                                notifyClockFormatChanged(context, checked)
-                            }
-                        )
+                )
+            }
+            SettingsRow(
+                title = "Use 24-hour format",
+                onClick = {
+                    val newValue = !use24h
+                    use24h = newValue
+                    prefs.edit().putBoolean(PREF_CLOCK_USE_24H, newValue).apply()
+                    notifyClockFormatChanged(context, newValue)
+                }
+            ) {
+                Switch(
+                    checked = use24h,
+                    onCheckedChange = { checked ->
+                        use24h = checked
+                        prefs.edit().putBoolean(PREF_CLOCK_USE_24H, checked).apply()
+                        notifyClockFormatChanged(context, checked)
                     }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Button(onClick = { showDialog = false }) {
-                            Text("OK")
-                        }
-                    }
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Button(onClick = { showDialog = false }) {
+                    Text("OK")
                 }
             }
         }
@@ -615,6 +589,7 @@ fun AlarmConfigRow() {
         dialogMinute = if (alarmMinute >= 0) alarmMinute else calendar.get(Calendar.MINUTE)
     }
 
+    val selectPreview = LocalPreviewSelection.current
     SettingsRow(
         title = "Alarm",
         onClick = {
@@ -632,6 +607,7 @@ fun AlarmConfigRow() {
         Switch(
             checked = alarmEnabled,
             onCheckedChange = { checked ->
+                selectPreview(DashboardSetting.Alarm)
                 if (checked && (alarmHour < 0 || alarmMinute < 0)) {
                     showDialog = true
                     return@Switch
@@ -668,100 +644,93 @@ fun AlarmConfigRow() {
     }
 
     if (showDialog) {
-        Dialog(onDismissRequest = { showDialog = false }) {
-            Surface(modifier = Modifier.padding(24.dp)) {
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(text = "Configure alarm")
-                    Row(
-                        modifier = Modifier.padding(top = 16.dp, bottom = 24.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Button(onClick = { dialogHour = (dialogHour + 1) % 24 }) {
-                                Text("+")
-                            }
-                            Text(
-                                text = String.format("%02d", dialogHour),
-                                fontSize = 32.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Button(onClick = { dialogHour = (dialogHour + 23) % 24 }) {
-                                Text("-")
-                            }
-                        }
-                        Text(
-                            text = ":",
-                            fontSize = 32.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 12.dp)
-                        )
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Button(onClick = { dialogMinute = (dialogMinute + 1) % 60 }) {
-                                Text("+")
-                            }
-                            Text(
-                                text = String.format("%02d", dialogMinute),
-                                fontSize = 32.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Button(onClick = { dialogMinute = (dialogMinute + 59) % 60 }) {
-                                Text("-")
-                            }
+        SettingsDialog(onDismissRequest = { showDialog = false }) {
+            Text(text = "Configure alarm", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+            Row(
+                modifier = Modifier.padding(top = 16.dp, bottom = 24.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Button(onClick = { dialogHour = (dialogHour + 1) % 24 }) {
+                        Text("+")
+                    }
+                    Text(
+                        text = String.format("%02d", dialogHour),
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Button(onClick = { dialogHour = (dialogHour + 23) % 24 }) {
+                        Text("-")
+                    }
+                }
+                Text(
+                    text = ":",
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 12.dp)
+                )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Button(onClick = { dialogMinute = (dialogMinute + 1) % 60 }) {
+                        Text("+")
+                    }
+                    Text(
+                        text = String.format("%02d", dialogMinute),
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Button(onClick = { dialogMinute = (dialogMinute + 59) % 60 }) {
+                        Text("-")
+                    }
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Button(onClick = {
+                    if (AlarmScheduler.needsExactAlarmPermission(context)) {
+                        val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                        try {
+                            context.startActivity(intent)
+                        } catch (_: Exception) {
+                            // Ignore if settings screen is not available.
                         }
                     }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Button(onClick = {
-                            if (AlarmScheduler.needsExactAlarmPermission(context)) {
-                                val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
-                                try {
-                                    context.startActivity(intent)
-                                } catch (_: Exception) {
-                                    // Ignore if settings screen is not available.
-                                }
-                            }
-                            val success = AlarmScheduler.scheduleAlarm(
-                                context,
-                                dialogHour,
-                                dialogMinute
-                            )
-                            if (!success) {
-                                Toast.makeText(
-                                    context,
-                                    "Alarm scheduling is not available on this device.",
-                                    Toast.LENGTH_LONG
-                                ).show()
-                                return@Button
-                            }
-                            alarmHour = dialogHour
-                            alarmMinute = dialogMinute
-                            alarmEnabled = true
-                            prefs.edit()
-                                .putBoolean(PREF_ALARM_ENABLED, true)
-                                .putInt(PREF_ALARM_HOUR, alarmHour)
-                                .putInt(PREF_ALARM_MINUTE, alarmMinute)
-                                .apply()
-                            showDialog = false
-                        }) {
-                            Text("ACTIVATE")
-                        }
-                        Button(onClick = {
-                            AlarmScheduler.cancelAlarm(context)
-                            alarmEnabled = false
-                            prefs.edit()
-                                .putBoolean(PREF_ALARM_ENABLED, false)
-                                .apply()
-                            showDialog = false
-                        }) {
-                            Text("CANCEL")
-                        }
+                    val success = AlarmScheduler.scheduleAlarm(
+                        context,
+                        dialogHour,
+                        dialogMinute
+                    )
+                    if (!success) {
+                        Toast.makeText(
+                            context,
+                            "Alarm scheduling is not available on this device.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        return@Button
                     }
+                    alarmHour = dialogHour
+                    alarmMinute = dialogMinute
+                    alarmEnabled = true
+                    prefs.edit()
+                        .putBoolean(PREF_ALARM_ENABLED, true)
+                        .putInt(PREF_ALARM_HOUR, alarmHour)
+                        .putInt(PREF_ALARM_MINUTE, alarmMinute)
+                        .apply()
+                    showDialog = false
+                }) {
+                    Text("ACTIVATE")
+                }
+                Button(onClick = {
+                    AlarmScheduler.cancelAlarm(context)
+                    alarmEnabled = false
+                    prefs.edit()
+                        .putBoolean(PREF_ALARM_ENABLED, false)
+                        .apply()
+                    showDialog = false
+                }) {
+                    Text("CANCEL")
                 }
             }
         }
