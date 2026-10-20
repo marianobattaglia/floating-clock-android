@@ -13,6 +13,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -269,15 +270,6 @@ fun FloatingClockSwitch(
                     Toast.LENGTH_LONG
                 ).show()
                 return@onToggle
-            }
-
-            if (AlarmScheduler.needsExactAlarmPermission(context)) {
-                val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
-                try {
-                    context.startActivity(intent)
-                } catch (_: Exception) {
-                    // Ignore if settings screen is not available.
-                }
             }
 
             if (!Settings.canDrawOverlays(context)) {
@@ -558,6 +550,10 @@ fun PositionButton(selected: Boolean, label: String, onClick: () -> Unit) {
     }
 }
 
+private const val PENDING_ALARM_ACTION_NONE = 0
+private const val PENDING_ALARM_ACTION_SHOW_DIALOG = 1
+private const val PENDING_ALARM_ACTION_ACTIVATE = 2
+
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
 fun AlarmConfigRow() {
@@ -574,10 +570,16 @@ fun AlarmConfigRow() {
     var alarmMinute by remember {
         mutableStateOf(prefs.getInt(PREF_ALARM_MINUTE, -1))
     }
-    var showDialog by remember { mutableStateOf(false) }
-    var dialogHour by remember { mutableStateOf(0) }
-    var dialogMinute by remember { mutableStateOf(0) }
+    var showDialog by rememberSaveable { mutableStateOf(false) }
+    var dialogHour by rememberSaveable { mutableStateOf(0) }
+    var dialogMinute by rememberSaveable { mutableStateOf(0) }
     var alarmActive by remember { mutableStateOf(false) }
+    var exactAccessMissing by rememberSaveable { mutableStateOf(false) }
+    var pendingPermissionAction by rememberSaveable {
+        mutableStateOf(PENDING_ALARM_ACTION_NONE)
+    }
+    var pendingAlarmHour by rememberSaveable { mutableStateOf(-1) }
+    var pendingAlarmMinute by rememberSaveable { mutableStateOf(-1) }
 
     DisposableEffect(context) {
         val receiver = object : BroadcastReceiver() {
@@ -598,11 +600,89 @@ fun AlarmConfigRow() {
         onDispose { context.unregisterReceiver(receiver) }
     }
 
-    LaunchedEffect(showDialog) {
-        if (!showDialog) return@LaunchedEffect
+    fun openConfigurationDialog() {
         val calendar = Calendar.getInstance()
         dialogHour = if (alarmHour >= 0) alarmHour else calendar.get(Calendar.HOUR_OF_DAY)
         dialogMinute = if (alarmMinute >= 0) alarmMinute else calendar.get(Calendar.MINUTE)
+        showDialog = true
+    }
+
+    fun scheduleSelectedAlarm(hour: Int, minute: Int, closeDialog: Boolean) {
+        val result = AlarmScheduler.scheduleAlarm(context, hour, minute)
+        when (result) {
+            AlarmScheduleResult.EXACT,
+            AlarmScheduleResult.APPROXIMATE -> {
+                alarmHour = hour
+                alarmMinute = minute
+                alarmEnabled = true
+                exactAccessMissing = result == AlarmScheduleResult.APPROXIMATE
+                prefs.edit()
+                    .putBoolean(PREF_ALARM_ENABLED, true)
+                    .putInt(PREF_ALARM_HOUR, hour)
+                    .putInt(PREF_ALARM_MINUTE, minute)
+                    .apply()
+                if (closeDialog) showDialog = false
+
+                if (result == AlarmScheduleResult.APPROXIMATE) {
+                    Toast.makeText(
+                        context,
+                        context.getString(R.string.alarm_scheduling_approximate),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            }
+            AlarmScheduleResult.FAILED -> {
+                Toast.makeText(
+                    context,
+                    context.getString(R.string.alarm_scheduling_unavailable),
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+        }
+    }
+
+    fun continuePendingPermissionAction() {
+        val action = pendingPermissionAction
+        pendingPermissionAction = PENDING_ALARM_ACTION_NONE
+        exactAccessMissing = AlarmScheduler.needsExactAlarmPermission(context)
+
+        when (action) {
+            PENDING_ALARM_ACTION_SHOW_DIALOG -> openConfigurationDialog()
+            PENDING_ALARM_ACTION_ACTIVATE -> scheduleSelectedAlarm(
+                pendingAlarmHour,
+                pendingAlarmMinute,
+                closeDialog = false
+            )
+        }
+    }
+
+    val exactAlarmSettingsLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) {
+        continuePendingPermissionAction()
+    }
+
+    fun requestExactAlarmAccess(action: Int, hour: Int = -1, minute: Int = -1) {
+        pendingPermissionAction = action
+        pendingAlarmHour = hour
+        pendingAlarmMinute = minute
+
+        val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+            .setData(Uri.parse("package:${context.packageName}"))
+        try {
+            exactAlarmSettingsLauncher.launch(intent)
+        } catch (_: Exception) {
+            continuePendingPermissionAction()
+        }
+    }
+
+    fun openAlarmConfiguration() {
+        if (AlarmScheduler.needsExactAlarmPermission(context)) {
+            requestExactAlarmAccess(PENDING_ALARM_ACTION_SHOW_DIALOG)
+        } else {
+            exactAccessMissing = false
+            openConfigurationDialog()
+        }
     }
 
     val selectPreview = LocalPreviewSelection.current
@@ -617,7 +697,7 @@ fun AlarmConfigRow() {
                     .putBoolean(PREF_ALARM_ENABLED, false)
                     .apply()
             } else {
-                showDialog = true
+                openAlarmConfiguration()
             }
         }
     ) {
@@ -626,36 +706,25 @@ fun AlarmConfigRow() {
             onCheckedChange = { checked ->
                 selectPreview(DashboardSetting.Alarm)
                 if (checked && (alarmHour < 0 || alarmMinute < 0)) {
-                    showDialog = true
+                    openAlarmConfiguration()
                     return@Switch
                 }
                 if (checked) {
                     if (AlarmScheduler.needsExactAlarmPermission(context)) {
-                        val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
-                        try {
-                            context.startActivity(intent)
-                        } catch (_: Exception) {
-                            // Ignore if settings screen is not available.
-                        }
-                    }
-                    val success = AlarmScheduler.scheduleAlarm(
-                        context,
-                        alarmHour,
-                        alarmMinute
-                    )
-                    if (!success) {
-                        Toast.makeText(
-                            context,
-                            context.getString(R.string.alarm_scheduling_unavailable),
-                            Toast.LENGTH_LONG
-                        ).show()
+                        requestExactAlarmAccess(
+                            PENDING_ALARM_ACTION_ACTIVATE,
+                            alarmHour,
+                            alarmMinute
+                        )
                         return@Switch
                     }
+                    exactAccessMissing = false
+                    scheduleSelectedAlarm(alarmHour, alarmMinute, closeDialog = false)
                 } else {
                     AlarmScheduler.cancelAlarm(context)
+                    alarmEnabled = false
+                    prefs.edit().putBoolean(PREF_ALARM_ENABLED, false).apply()
                 }
-                alarmEnabled = checked
-                prefs.edit().putBoolean(PREF_ALARM_ENABLED, alarmEnabled).apply()
             }
         )
     }
@@ -663,6 +732,13 @@ fun AlarmConfigRow() {
     if (showDialog) {
         SettingsDialog(onDismissRequest = { showDialog = false }) {
             Text(text = stringResource(R.string.alarm_configure), fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+            if (exactAccessMissing) {
+                Text(
+                    text = stringResource(R.string.alarm_exact_access_missing),
+                    fontSize = 16.sp,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+            }
             Row(
                 modifier = Modifier.padding(top = 16.dp, bottom = 24.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -714,36 +790,7 @@ fun AlarmConfigRow() {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Button(onClick = {
-                    if (AlarmScheduler.needsExactAlarmPermission(context)) {
-                        val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
-                        try {
-                            context.startActivity(intent)
-                        } catch (_: Exception) {
-                            // Ignore if settings screen is not available.
-                        }
-                    }
-                    val success = AlarmScheduler.scheduleAlarm(
-                        context,
-                        dialogHour,
-                        dialogMinute
-                    )
-                    if (!success) {
-                        Toast.makeText(
-                            context,
-                            context.getString(R.string.alarm_scheduling_unavailable),
-                            Toast.LENGTH_LONG
-                        ).show()
-                        return@Button
-                    }
-                    alarmHour = dialogHour
-                    alarmMinute = dialogMinute
-                    alarmEnabled = true
-                    prefs.edit()
-                        .putBoolean(PREF_ALARM_ENABLED, true)
-                        .putInt(PREF_ALARM_HOUR, alarmHour)
-                        .putInt(PREF_ALARM_MINUTE, alarmMinute)
-                        .apply()
-                    showDialog = false
+                    scheduleSelectedAlarm(dialogHour, dialogMinute, closeDialog = true)
                 }) {
                     Text(stringResource(R.string.action_activate))
                 }

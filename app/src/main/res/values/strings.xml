@@ -67,6 +67,8 @@
     <string name="permission_overlay_denied">Overlay permission not granted.</string>
     <string name="permission_notification_required">Notification permission is required to start the floating clock.</string>
     <string name="alarm_scheduling_unavailable">Alarm scheduling is not available on this device.</string>
+    <string name="alarm_exact_access_missing">Exact alarm access is off. This alarm may ring later than selected.</string>
+    <string name="alarm_scheduling_approximate">Alarm scheduled, but it may ring later than the selected time.</string>
     <string name="clock_notification_title">Floating Clock</string>
     <string name="clock_notification_body">Floating clock is running.</string>
     <string name="clock_notification_channel">Floating Clock Service Channel</string>

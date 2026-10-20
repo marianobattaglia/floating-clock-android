@@ -59,6 +59,8 @@
     <string name="permission_overlay_denied">No se concedió el permiso para mostrar sobre otras aplicaciones.</string>
     <string name="permission_notification_required">Se necesita el permiso de notificaciones para iniciar el reloj flotante.</string>
     <string name="alarm_scheduling_unavailable">No se pueden programar alarmas en este dispositivo.</string>
+    <string name="alarm_exact_access_missing">El acceso a alarmas exactas está desactivado. Esta alarma podría sonar después de la hora elegida.</string>
+    <string name="alarm_scheduling_approximate">Alarma programada, pero podría sonar después de la hora elegida.</string>
     <string name="clock_notification_title">Reloj flotante</string>
     <string name="clock_notification_body">El reloj flotante está en funcionamiento.</string>
     <string name="clock_notification_channel">Servicio del reloj flotante</string>

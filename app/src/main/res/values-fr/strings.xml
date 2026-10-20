@@ -59,6 +59,8 @@
     <string name="permission_overlay_denied">L’autorisation d’affichage au-dessus des autres applications n’a pas été accordée.</string>
     <string name="permission_notification_required">L’autorisation de notification est nécessaire pour démarrer l’horloge flottante.</string>
     <string name="alarm_scheduling_unavailable">La programmation d’alarmes n’est pas disponible sur cet appareil.</string>
+    <string name="alarm_exact_access_missing">L’accès aux alarmes exactes est désactivé. Cette alarme peut sonner après l’heure choisie.</string>
+    <string name="alarm_scheduling_approximate">Alarme programmée, mais elle peut sonner après l’heure choisie.</string>
     <string name="clock_notification_title">Horloge flottante</string>
     <string name="clock_notification_body">L’horloge flottante est en cours d’exécution.</string>
     <string name="clock_notification_channel">Service de l’horloge flottante</string>
