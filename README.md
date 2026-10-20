@@ -25,19 +25,9 @@ FloatingClock is a lightweight Android TV app that shows the current time and ca
 - Floating Clock Overlay (Ringing)
 <img width="3840" height="2160" alt="overlay-alarm" src="https://github.com/user-attachments/assets/0f818c36-a19c-43fc-aebe-95eddea8ccf2" />
 
-## Demos
+## Demo
 
-These recordings predate the dashboard visual refresh; the configuration actions remain the same.
-
-### General demo
-
-https://github.com/user-attachments/assets/2404c8c6-d9b0-43e4-8aec-4f57f02c841b
-
-### Clock appearance
-
-Adjusting the floating clock's edge distance, overall size, and internal spacing:
-
-https://github.com/user-attachments/assets/b8564eed-36bc-4bdb-96c2-99fa0e184f26
+https://github.com/user-attachments/assets/8370ff31-11fa-409f-b0de-d630d15c747f
 
 ## Features
 
