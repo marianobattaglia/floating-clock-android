@@ -2,10 +2,14 @@ package com.example.floatingclock.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
-
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
+object DashboardColors {
+    val Background = Color(0xFF111720)
+    val Rail = Color(0xFF0B1017)
+    val Surface = Color(0xFF202936)
+    val Panel = Color(0xFF151D28)
+    val Focused = Color(0xFF283B55)
+    val Border = Color(0xFF303D4E)
+    val Accent = Color(0xFF69A5FF)
+    val Text = Color(0xFFF3F6FC)
+    val Muted = Color(0xFFA5B2C5)
+}

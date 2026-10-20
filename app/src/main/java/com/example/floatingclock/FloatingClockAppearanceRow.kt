@@ -6,12 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -24,18 +19,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.tv.material3.Button
 import androidx.tv.material3.ExperimentalTvMaterial3Api
-import androidx.tv.material3.Surface
 import androidx.tv.material3.Text
 
 @OptIn(ExperimentalTvMaterial3Api::class)
@@ -88,52 +82,38 @@ fun FloatingClockAppearanceRow() {
     }
     if (showDialog) {
         val close = { showDialog = false }
-        Dialog(onDismissRequest = close) {
-            Surface(
-                modifier = Modifier
-                    .widthIn(max = 560.dp)
-                    .fillMaxWidth()
-                    .heightIn(max = LocalConfiguration.current.screenHeightDp.dp * 0.85f)
-                    .padding(16.dp)
-            ) {
-                Column(
-                    modifier = Modifier.verticalScroll(rememberScrollState()).padding(24.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text("Clock appearance")
-                    AppearanceStepper(
-                        label = "Edge distance",
-                        value = "${appearance.edgeDistanceDp} dp",
-                        decreaseModifier = Modifier.focusRequester(initialFocus),
-                        onAdjust = { increase ->
-                            save(appearance.copy(edgeDistanceDp = ClockAppearanceLimits.edgeDistance.adjust(
-                                appearance.edgeDistanceDp, increase
-                            )))
-                        }
-                    )
-                    AppearanceStepper(
-                        label = "Overall size",
-                        value = "${appearance.scalePercent}%",
-                        onAdjust = { increase ->
-                            save(appearance.copy(scalePercent = ClockAppearanceLimits.overallSize.adjust(
-                                appearance.scalePercent, increase
-                            )))
-                        }
-                    )
-                    AppearanceStepper(
-                        label = "Internal spacing",
-                        value = "${appearance.paddingPercent}%",
-                        onAdjust = { increase ->
-                            save(appearance.copy(paddingPercent = ClockAppearanceLimits.internalSpacing.adjust(
-                                appearance.paddingPercent, increase
-                            )))
-                        }
-                    )
-                    Text("100% keeps the original size or spacing. Changes are saved immediately.")
-                    Button(onClick = close) { Text("OK") }
+        SettingsDialog(onDismissRequest = close) {
+            Text("Clock appearance", fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
+            AppearanceStepper(
+                label = "Edge distance",
+                value = "${appearance.edgeDistanceDp} dp",
+                decreaseModifier = Modifier.focusRequester(initialFocus),
+                onAdjust = { increase ->
+                    save(appearance.copy(edgeDistanceDp = ClockAppearanceLimits.edgeDistance.adjust(
+                        appearance.edgeDistanceDp, increase
+                    )))
                 }
-            }
+            )
+            AppearanceStepper(
+                label = "Overall size",
+                value = "${appearance.scalePercent}%",
+                onAdjust = { increase ->
+                    save(appearance.copy(scalePercent = ClockAppearanceLimits.overallSize.adjust(
+                        appearance.scalePercent, increase
+                    )))
+                }
+            )
+            AppearanceStepper(
+                label = "Internal spacing",
+                value = "${appearance.paddingPercent}%",
+                onAdjust = { increase ->
+                    save(appearance.copy(paddingPercent = ClockAppearanceLimits.internalSpacing.adjust(
+                        appearance.paddingPercent, increase
+                    )))
+                }
+            )
+            Text("100% keeps the original size or spacing. Changes are saved immediately.")
+            Button(onClick = close) { Text("OK") }
             LaunchedEffect(Unit) {
                 withFrameNanos { }
                 initialFocus.requestFocus()

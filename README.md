@@ -4,14 +4,20 @@ FloatingClock is a lightweight Android TV app that shows the current time and ca
 
 ## Screenshots and Media
 
-- App View
-<img width="3840" height="2160" alt="app-view" src="https://github.com/user-attachments/assets/4592a17b-66f1-485e-b694-0754af03fe64" />
+- Dashboard with the existing settings and a supplementary appearance preview
+![Dashboard](docs/images/dashboard.png)
 
-- Clock Position Setup Modal View
-<img width="3840" height="2160" alt="app-view" src="https://github.com/user-attachments/assets/79763380-dc6c-4cd8-97da-b9c9474079bf" />
+- Clock position dialog (same four-corner controls)
+![Clock position dialog](docs/images/position-dialog.png)
 
-- Alarm Setup Modal View
-<img width="3840" height="2160" alt="app-alarm-modal" src="https://github.com/user-attachments/assets/830e3ef5-1a0f-45a4-a1af-6db8ae8b7a28" />
+- Clock format dialog (same format and seconds switches)
+![Clock format dialog](docs/images/format-dialog.png)
+
+- Clock appearance dialog (same three stepper controls)
+![Clock appearance dialog](docs/images/appearance-dialog.png)
+
+- Alarm dialog (same time, ACTIVATE, and CANCEL controls)
+![Alarm dialog](docs/images/alarm-dialog.png)
 
 - Floating Clock Overlay
 <img width="3840" height="2160" alt="overlay-on" src="https://github.com/user-attachments/assets/7f12bc8e-c20f-4d39-a776-35e3084bd752" />
@@ -19,17 +25,9 @@ FloatingClock is a lightweight Android TV app that shows the current time and ca
 - Floating Clock Overlay (Ringing)
 <img width="3840" height="2160" alt="overlay-alarm" src="https://github.com/user-attachments/assets/0f818c36-a19c-43fc-aebe-95eddea8ccf2" />
 
-## Demos
+## Demo
 
-### General demo
-
-https://github.com/user-attachments/assets/2404c8c6-d9b0-43e4-8aec-4f57f02c841b
-
-### Clock appearance
-
-Adjusting the floating clock's edge distance, overall size, and internal spacing:
-
-https://github.com/user-attachments/assets/b8564eed-36bc-4bdb-96c2-99fa0e184f26
+https://github.com/user-attachments/assets/8370ff31-11fa-409f-b0de-d630d15c747f
 
 ## Features
 
@@ -77,9 +75,17 @@ See [AGENTS.md](AGENTS.md) for Codex guidance and development checks.
 - On some Android TV devices or emulators, exact alarms may not be allowed. In that case, the app falls back to a best-effort schedule.
 - If the emulator has no default alarm sound, the app falls back to a simple beep tone.
 
-## Planned UI improvements
+## Dashboard layout
 
-A future iteration will improve the visual design across the app, including the main screen, settings rows, and dialogs. The current floating clock appearance controls are accepted as delivered; their visual refinement will be part of that broader UI work. Detailed scope and timing will be defined in a separate OpenSpec change.
+The dashboard places the app logo and **Home** / **Settings** shortcuts in a left rail, the app name and live clock in the header, the existing settings rows on the left, and a supplementary preview on the right. Both shortcuts stay within the same screen: Home returns the settings list to its start with the header visible; Settings also focuses the first setting. D-pad and Select operate the existing controls, and Back retains its current dialog/exit behavior.
+
+The large header clock is shown only while the floating clock is disabled. The miniature floating clock is drawn over the preview landscape only while the floating clock is enabled; the landscape remains visible when it is off.
+
+The TV preview uses a bundled landscape photograph, with the configured clock drawn live on top. It works offline and uses a centered crop to fill the existing frame without stretching the photograph.
+
+Moving focus between rows with the remote updates the read-only preview immediately, without opening a dialog or changing settings. **OK/Select** or tap performs the same action as before: the floating-clock row toggles the overlay, configuration rows open their dialogs directly, and a ringing alarm can be dismissed from its row. A modal may temporarily cover the preview; closing it reveals the accepted values. There is no additional editing step, and all existing controls, ranges, and save behavior are retained.
+
+The advertising banner and its placeholder are hidden. No bottom space is occupied by advertising; integration remains future work.
 
 ## Development with Codex
 
