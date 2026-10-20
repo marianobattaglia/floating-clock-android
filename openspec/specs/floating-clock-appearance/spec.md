@@ -8,7 +8,7 @@ Allow Android TV users to personalize the floating clock's edge distance, overal
 
 ### Requirement: Appearance modal is accessible with a TV remote
 
-While the floating clock is enabled, the app SHALL show a `Clock appearance` row with the existing overlay settings. Selecting it SHALL open a modal containing labeled edge distance, overall size, and internal spacing values, each with decrease and increase buttons. All controls SHALL be reachable using only D-pad and Select, show visible focus, and remain accessible on supported TV screen sizes. `OK` and Back SHALL dismiss the modal and return focus to its opening row without reverting saved adjustments.
+While the floating clock is enabled, the app SHALL show a localized `Clock appearance` row with the existing overlay settings. Selecting it SHALL open a modal containing localized labels for edge distance, overall size, and internal spacing values, each with decrease and increase buttons and localized accessible action descriptions. All controls SHALL be reachable using only D-pad and Select, show visible focus, and remain accessible on supported TV screen sizes in English, Spanish, Portuguese, and French. The localized `OK` action and Back SHALL dismiss the modal and return focus to its opening row without reverting saved adjustments. The English names used in this specification identify controls semantically rather than requiring English display text.
 
 #### Scenario: Adjust and close using the remote
 - **WHEN** the user selects `Clock appearance`, navigates between all three controls, selects increase or decrease, and presses Back or selects `OK`
@@ -19,6 +19,11 @@ While the floating clock is enabled, the app SHALL show a `Clock appearance` row
 - **WHEN** the floating clock is disabled
 - **THEN** the appearance row is hidden consistently with the position and format rows
 - **AND** previously saved appearance values remain available for the next successful enable
+
+#### Scenario: Use translated appearance controls
+- **WHEN** the user opens the appearance modal in Spanish, Portuguese, or French using only the remote
+- **THEN** its title, labels, help, close action, and accessible increase/decrease descriptions use that language
+- **AND** all controls remain readable and reachable with visible focus and the same ranges, steps, immediate save, and Back behavior
 
 ### Requirement: Edge distance adjusts the selected corner's offsets
 
@@ -65,7 +70,7 @@ Each accepted adjustment SHALL immediately update the displayed value, persist t
 
 ### Requirement: Bounds and screen fitting prevent unusable geometry
 
-Values SHALL remain within their supported ranges; further increase/decrease at a bound SHALL have no effect. Missing or unreadable values SHALL use their respective defaults, and numeric values outside the range SHALL be clamped. The overlay SHALL remain fully within the available window area, including at the largest size, largest spacing, and longest time format. If requested geometry cannot fit, it SHALL reduce the effective scale uniformly only as needed to fit the content and clamp edge offsets to the remaining available space. Fitting SHALL preserve saved requested values and SHALL be recalculated when format, seconds, position, or available display area changes.
+Values SHALL remain within their supported ranges; further increase/decrease at a bound SHALL have no effect. Missing or unreadable values SHALL use their respective defaults, and numeric values outside the range SHALL be clamped. The overlay SHALL remain fully within the available window area, including at the largest size, largest spacing, and longest time format. If requested geometry cannot fit, it SHALL reduce the effective scale uniformly only as needed to fit the content and clamp edge offsets to the remaining available space. Fitting SHALL preserve saved requested values and SHALL be recalculated when format, seconds, position, available display area, or locale-dependent time text changes.
 
 #### Scenario: Reach a control boundary
 - **WHEN** the user repeatedly selects decrease at the minimum or increase at the maximum of any control
@@ -79,6 +84,11 @@ Values SHALL remain within their supported ranges; further increase/decrease at 
 - **WHEN** large size, padding, or distance settings or a display/format change would place part of the clock outside the available area
 - **THEN** the complete text and background fit within that area using uniform scale reduction and bounded offsets
 - **AND** the saved requested settings and selected corner do not change
+
+#### Scenario: Locale changes the time text width
+- **WHEN** the active overlay's locale changes with 12-hour time and seconds enabled at large appearance values
+- **THEN** the complete time, including locale-dependent day-period text, fits within the available area in any selected corner
+- **AND** saved appearance, corner, seconds, and format values are preserved
 
 ### Requirement: Appearance updates respect permissions and overlay lifecycle
 
@@ -107,3 +117,21 @@ Updating appearance SHALL preserve the alarm's current sound and blinking state.
 - **THEN** sound and red blinking continue during adjustment and stop through the existing dismissal flow
 - **AND** the overlay keeps the adjusted appearance and normal background afterward
 - **AND** the main screen clock retains its existing geometry
+
+### Requirement: Appearance row and modal use the dashboard visual style
+
+The existing appearance row and modal SHALL use the dashboard's colors, typography, spacing, surfaces, and visible focus treatment without changing their functional contract. Selecting the row SHALL continue to open the modal directly, and OK or Back SHALL close it and return focus to that row. The modal SHALL retain the existing decrease/increase buttons for edge distance (0–128 dp, 4 dp steps, default 16 dp), overall size (50–200%, 10 percentage point steps, default 100%), and internal spacing (0–300%, 10 percentage point steps, default 100%). Existing immediate saving, normalization, active-overlay updates, fitting rules, and disabled-overlay visibility SHALL remain unchanged. A supplementary preview SHALL add no editable controls or intermediate action. All existing requirements of this capability remain in force.
+
+#### Scenario: Adjust appearance after the visual refresh
+- **WHEN** the user selects Clock appearance, changes any existing value with its decrease/increase buttons, and closes with OK or Back
+- **THEN** the modal opens directly with refreshed styling and the same three settings, limits, steps, and defaults
+- **AND** accepted adjustments save and update the active overlay immediately, closing retains those values, and focus returns to Clock appearance
+
+#### Scenario: Overlay is disabled
+- **WHEN** the floating clock is disabled
+- **THEN** the appearance row remains hidden as before and its saved values are unchanged
+- **AND** a supplementary preview does not expose a new route to modify those settings
+
+#### Scenario: Compare with the illustrative reference
+- **WHEN** the appearance row or modal is rendered in the redesigned app
+- **THEN** only the existing three appearance controls are available, without an opacity slider, color selector, or intermediate Edit action

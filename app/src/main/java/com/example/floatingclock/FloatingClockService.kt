@@ -1,5 +1,6 @@
 package com.example.floatingclock
 
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
@@ -15,9 +16,6 @@ import android.view.WindowInsets
 import android.widget.TextView
 import android.text.Layout
 import kotlin.math.ceil
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Locale
 import android.content.pm.ServiceInfo
 import android.graphics.Color
 import android.graphics.PixelFormat
@@ -46,6 +44,7 @@ class FloatingClockService : Service() {
     private val appearanceReceiver = AppearanceReceiver()
     private lateinit var displayManager: DisplayManager
     private var destroyed = false
+    private var foregroundStarted = false
     private var use24Hour = true
     private var showClockSeconds = false
     private val displayListener = object : DisplayManager.DisplayListener {
@@ -62,11 +61,7 @@ class FloatingClockService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         createNotificationChannel()
-        val notification = NotificationCompat.Builder(this, "FloatingClockChannel")
-            .setContentTitle("Floating Clock")
-            .setContentText("Floating clock is running.")
-            .setSmallIcon(R.mipmap.ic_launcher)
-            .build()
+        val notification = buildNotification()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(
@@ -78,6 +73,8 @@ class FloatingClockService : Service() {
             startForeground(1, notification)
         }
 
+        foregroundStarted = true
+        synchronizeNotificationChannelNames(this)
         return START_NOT_STICKY
     }
 
@@ -98,6 +95,7 @@ class FloatingClockService : Service() {
         )
 
         floatingClockView = OverlayTextClock(this).apply {
+            textLocale = configurationLocale(resources.configuration)
             format24Hour = "HH:mm:ss"
             format12Hour = "hh:mm:ss a"
             textSize = 24f
@@ -146,6 +144,7 @@ class FloatingClockService : Service() {
 
     override fun onDestroy() {
         destroyed = true
+        foregroundStarted = false
         displayManager.unregisterDisplayListener(displayListener)
         super.onDestroy()
         stopBlink()
@@ -159,14 +158,24 @@ class FloatingClockService : Service() {
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
-        applyAppearance()
+        if (destroyed) return
+        synchronizeNotificationChannelNames(this)
+        if (foregroundStarted) {
+            (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).notify(1, buildNotification())
+        }
+        if (::floatingClockView.isInitialized) {
+            floatingClockView.textLocale = configurationLocale(resources.configuration)
+            // Recreate the calendar and force TextClock to refresh without replacing its window.
+            floatingClockView.timeZone = null
+            applyFormat(use24Hour, showClockSeconds)
+        }
     }
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val serviceChannel = NotificationChannel(
-                "FloatingClockChannel",
-                "Floating Clock Service Channel",
+                CLOCK_CHANNEL_ID,
+                getString(R.string.clock_notification_channel),
                 NotificationManager.IMPORTANCE_DEFAULT
             )
             val manager = getSystemService(NotificationManager::class.java)
@@ -247,8 +256,8 @@ class FloatingClockService : Service() {
         if (!::floatingClockView.isInitialized) return
         use24Hour = use24h
         showClockSeconds = showSeconds
-        val pattern24 = if (showSeconds) "HH:mm:ss" else "HH:mm"
-        val pattern12 = if (showSeconds) "hh:mm:ss a" else "hh:mm a"
+        val pattern24 = clockPattern(true, showSeconds)
+        val pattern12 = clockPattern(false, showSeconds)
         if (use24h) {
             floatingClockView.format24Hour = pattern24
             floatingClockView.format12Hour = pattern24
@@ -276,24 +285,17 @@ class FloatingClockService : Service() {
         return ClockPixelSize(size.x.coerceAtLeast(1), size.y.coerceAtLeast(1))
     }
 
-    // Choose the widest valid field values, including localized AM/PM, rather than
-    // fitting only the current tick (which could clip at the next minute/hour).
-    private fun longestTimeText(): String {
-        val locale = Locale.getDefault()
-        val calendar = Calendar.getInstance().apply { set(Calendar.MILLISECOND, 0) }
-        fun widest(pattern: String, field: Int, values: IntRange): String {
-            val formatter = SimpleDateFormat(pattern, locale)
-            return values.map { value ->
-                calendar.set(field, value)
-                formatter.format(calendar.time)
-            }.maxBy { floatingClockView.paint.measureText(it) }
-        }
-        val hours = widest(if (use24Hour) "HH" else "hh", Calendar.HOUR_OF_DAY, 0..23)
-        val minutes = widest("mm", Calendar.MINUTE, 0..59)
-        val seconds = if (showClockSeconds) ":" + widest("ss", Calendar.SECOND, 0..59) else ""
-        val period = if (use24Hour) "" else " " + widest("a", Calendar.HOUR_OF_DAY, 0..23)
-        return "$hours:$minutes$seconds$period"
-    }
+    private fun longestTimeText(): String = widestClockText(
+        configurationLocale(resources.configuration), use24Hour, showClockSeconds,
+        floatingClockView.paint::measureText
+    )
+
+    private fun buildNotification(): Notification = NotificationCompat.Builder(this, CLOCK_CHANNEL_ID)
+        .setContentTitle(getString(R.string.clock_notification_title))
+        .setContentText(getString(R.string.clock_notification_body))
+        .setSmallIcon(R.mipmap.ic_launcher)
+        .setOnlyAlertOnce(true)
+        .build()
 
     private fun applyAppearance() {
         if (destroyed || !::floatingClockView.isInitialized) return

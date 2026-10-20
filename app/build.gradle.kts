@@ -16,6 +16,7 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
     }
 
@@ -34,6 +35,9 @@ android {
     }
     kotlinOptions {
         jvmTarget = "11"
+    }
+    androidResources {
+        localeFilters += listOf("en", "es", "pt", "fr")
     }
     buildFeatures {
         compose = true
@@ -56,6 +60,21 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    androidTestImplementation(libs.androidx.test.runner)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
+
+val translationVerifier = rootProject.file("tools/TranslationVerifier.java")
+val verifyTranslations by tasks.registering(Exec::class) {
+    group = "verification"
+    description = "Check complete translation catalogs and compatible placeholders."
+    inputs.file(translationVerifier)
+    inputs.dir("src/main/res")
+    commandLine("${System.getProperty("java.home")}/bin/java", translationVerifier, file("src/main/res"))
+}
+val testTranslationVerifier by tasks.registering(Exec::class) {
+    group = "verification"
+    commandLine("${System.getProperty("java.home")}/bin/java", translationVerifier, "--self-test")
+}
+tasks.named("check") { dependsOn(verifyTranslations, testTranslationVerifier) }

@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
+import android.content.res.Configuration
 import android.content.pm.ServiceInfo
 import android.media.AudioAttributes
 import android.media.Ringtone
@@ -22,6 +23,7 @@ class AlarmSoundService : Service() {
     private var toneGenerator: ToneGenerator? = null
     private val toneHandler = Handler(Looper.getMainLooper())
     private var tonePlaying = false
+    private var foregroundStarted = false
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -32,12 +34,7 @@ class AlarmSoundService : Service() {
         }
 
         createNotificationChannel()
-        val notification = NotificationCompat.Builder(this, ALARM_CHANNEL_ID)
-            .setContentTitle("Alarm")
-            .setContentText("Alarm is ringing.")
-            .setSmallIcon(R.mipmap.ic_launcher)
-            .setOngoing(true)
-            .build()
+        val notification = buildNotification()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(
@@ -49,9 +46,28 @@ class AlarmSoundService : Service() {
             startForeground(ALARM_NOTIFICATION_ID, notification)
         }
 
+        foregroundStarted = true
+        synchronizeNotificationChannelNames(this)
         startAlarm()
         return START_NOT_STICKY
     }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        synchronizeNotificationChannelNames(this)
+        if (foregroundStarted) {
+            (getSystemService(NOTIFICATION_SERVICE) as NotificationManager)
+                .notify(ALARM_NOTIFICATION_ID, buildNotification())
+        }
+    }
+
+    private fun buildNotification(): Notification = NotificationCompat.Builder(this, ALARM_CHANNEL_ID)
+        .setContentTitle(getString(R.string.alarm_title))
+        .setContentText(getString(R.string.alarm_notification_body))
+        .setSmallIcon(R.mipmap.ic_launcher)
+        .setOngoing(true)
+        .setOnlyAlertOnce(true)
+        .build()
 
     override fun onDestroy() {
         stopAlarm()
@@ -79,6 +95,7 @@ class AlarmSoundService : Service() {
     }
 
     private fun stopAlarm() {
+        foregroundStarted = false
         handler.removeCallbacksAndMessages(null)
         ringtone?.stop()
         ringtone = null
@@ -91,7 +108,7 @@ class AlarmSoundService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 ALARM_CHANNEL_ID,
-                "Alarms",
+                getString(R.string.alarm_notification_channel),
                 NotificationManager.IMPORTANCE_HIGH
             )
             val manager = getSystemService(NotificationManager::class.java)
@@ -104,7 +121,6 @@ class AlarmSoundService : Service() {
         const val ACTION_STOP = "com.example.floatingclock.ALARM_STOP"
         const val ACTION_ALARM_STATE = "com.example.floatingclock.ALARM_STATE"
         const val EXTRA_ALARM_ACTIVE = "alarm_active"
-        private const val ALARM_CHANNEL_ID = "AlarmChannel"
         private const val ALARM_NOTIFICATION_ID = 2
         private const val AUTO_STOP_MS = 60_000L
     }
