@@ -4,7 +4,7 @@
 
 FloatingClock is an Android TV app with a floating clock overlay and a background alarm. It has a single `app` module using Kotlin and Jetpack Compose for TV. Dependency versions live in `gradle/libs.versions.toml`; user-facing behavior is documented in `README.md`.
 
-The main source code is in `app/src/main/java/com/example/floatingclock/`:
+The main source code is in `app/src/main/java/com/marianobattaglia/floatingclock/`:
 
 - `MainActivity.kt`: main screen, settings, and Compose dialogs.
 - `FloatingClockService.kt`: foreground service and clock overlay window.

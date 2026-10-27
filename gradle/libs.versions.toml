@@ -10,6 +10,7 @@ lifecycleRuntimeKtx = "2.6.1"
 lifecycleService = "2.6.1"
 lifecycleRuntime = "2.6.1"
 activityCompose = "1.8.0"
+playBilling = "8.0.0"
 
 junit = "4.13.2"
 testRunner = "1.5.2"
@@ -32,6 +33,7 @@ androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecyc
 androidx-lifecycle-runtime = { group = "androidx.lifecycle", name = "lifecycle-runtime", version.ref = "lifecycleRuntime" }
 androidx-lifecycle-service = { group = "androidx.lifecycle", name = "lifecycle-service", version.ref = "lifecycleService" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
+google-play-billing = { group = "com.android.billingclient", name = "billing", version.ref = "playBilling" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

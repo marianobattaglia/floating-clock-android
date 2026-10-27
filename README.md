@@ -36,6 +36,9 @@ https://github.com/user-attachments/assets/8370ff31-11fa-409f-b0de-d630d15c747f
 - Selectable overlay position (four screen corners).
 - Clock format settings (12/24-hour and optional seconds).
 - Adjustable floating clock edge distance, overall size, and internal spacing, saved between sessions.
+- Free access allows one successful alarm activation per rolling 24 hours; PRO removes this limit.
+- Optional one-time PRO purchase through Google Play, with purchase restoration on the same Play account.
+- A debug-only local Free/PRO override for development; it does not create a Play purchase.
 - Alarm with HH:MM configuration in 24-hour format.
 - Alarm sound plays in the background and the overlay clock blinks red while it is active.
 - Alarm can be dismissed by entering the app and selecting the Alarm row.
@@ -101,11 +104,11 @@ catalog keys cannot detect every hardcoded UI string.
 1) Open the app and toggle **Show Floating Clock** to enable the overlay.
 2) Use **Clock position** to choose a corner for the overlay.
 3) Use **Clock format** to toggle 12/24-hour format and show/hide seconds.
-4) Use **Clock appearance** to change **Edge distance** (0–128 dp, steps of 4 dp, default 16 dp), **Overall size** (50–200%, steps of 10%, default 100%), and **Internal spacing** (0–300%, steps of 10%, default 100%) with the remote’s **−** and **+** buttons.
-5) Select the **Alarm** row to set the alarm time. On Android 12+, if exact-alarm access is missing, system settings opens before the configuration dialog. Returning without granting access still lets you configure an alarm with approximate timing.
+4) In Free, selecting **Clock appearance** opens PRO. PRO can change **Edge distance** (0–128 dp, steps of 4 dp, default 16 dp), **Overall size** (50–200%, steps of 10%, default 100%), and **Internal spacing** (0–300%, steps of 10%, default 100%) with the remote’s **−** and **+** buttons.
+5) Select the **Alarm** row to set the alarm time. Free allows one successfully scheduled activation per rolling 24 hours. Canceling or dismissing an alarm remains available; PRO has no activation limit. On Android 12+, if exact-alarm access is missing, system settings opens before the configuration dialog. Returning without granting access still lets you configure an alarm with approximate timing.
 6) Press **ACTIVATE** to schedule the alarm or **CANCEL** to disable it. Without exact-alarm access, an inexact best-effort alarm is used and may ring later than selected.
-7) When the alarm rings, the overlay clock blinks red and an alarm sound plays.
-8) Open the app and select the **Alarm** row to stop the alarm immediately.
+7) Use **PRO** in the left rail to check access or complete the one-time Google Play purchase. An owned purchase is restored automatically through the same Google Play account when Billing is available.
+8) When the alarm rings, the overlay clock blinks red and an alarm sound plays. Open the app and select the **Alarm** row to stop it immediately.
 
 Appearance changes apply and save immediately. **OK** or Back closes the modal and keeps your adjustments. At 100%, size and spacing match the original overlay; overall size scales both text and padding, while internal spacing changes only padding when space permits. The same edge distance applies to both edges of the selected corner. If the requested clock cannot fit, it is scaled down and its edge distance limited to keep the complete time visible, without changing your saved choices. These controls do not resize the main screen clock.
 
@@ -118,7 +121,7 @@ See [AGENTS.md](AGENTS.md) for Codex guidance and development checks.
 
 ## Dashboard layout
 
-The dashboard places the app logo and **Home** / **Settings** shortcuts in a left rail, the app name and live clock in the header, the existing settings rows on the left, and a supplementary preview on the right. Both shortcuts stay within the same screen: Home returns the settings list to its start with the header visible; Settings also focuses the first setting. D-pad and Select operate the existing controls, and Back retains its current dialog/exit behavior.
+The dashboard places the app logo and **Home** / **PRO** shortcuts in a left rail, with **Debug** included only in debug builds. Existing settings remain on Home; PRO shows the current access status and Google Play purchase action, while Debug can locally simulate Free and PRO. Back returns from PRO or Debug to Home. D-pad and Select operate the controls.
 
 The large header clock is shown only while the floating clock is disabled. The miniature floating clock is drawn over the preview landscape only while the floating clock is enabled; the landscape remains visible when it is off.
 
@@ -126,7 +129,7 @@ The TV preview uses a bundled landscape photograph, with the configured clock dr
 
 Moving focus between rows with the remote updates the read-only preview immediately, without opening a dialog or changing settings. **OK/Select** or tap performs the same action as before: the floating-clock row toggles the overlay, configuration rows open their dialogs directly, and a ringing alarm can be dismissed from its row. A modal may temporarily cover the preview; closing it reveals the accepted values. There is no additional editing step, and all existing controls, ranges, and save behavior are retained.
 
-The advertising banner and its placeholder are hidden. No bottom space is occupied by advertising; integration remains future work.
+The advertising banner and its placeholder are hidden. No bottom space is occupied by advertising; ads and subscription-based ad removal remain future work.
 
 ## Development with Codex
 
