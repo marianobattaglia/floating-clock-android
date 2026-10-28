@@ -227,14 +227,14 @@ private fun DebugOverrideButton(
 }
 
 @Composable
-private fun statusLabel(status: ActualProStatus): Int = when (status) {
+internal fun statusLabel(status: ActualProStatus): Int = when (status) {
     ActualProStatus.CHECKING -> R.string.pro_status_checking
     ActualProStatus.FREE -> R.string.pro_status_free
     ActualProStatus.PRO -> R.string.pro_status_pro
     ActualProStatus.UNAVAILABLE -> R.string.pro_status_unavailable
 }
 
-private fun billingFeedback(feedback: ProBillingFeedback): Int? = when (feedback) {
+internal fun billingFeedback(feedback: ProBillingFeedback): Int? = when (feedback) {
     ProBillingFeedback.NONE -> null
     ProBillingFeedback.PENDING -> R.string.pro_feedback_pending
     ProBillingFeedback.CANCELED -> R.string.pro_feedback_canceled
