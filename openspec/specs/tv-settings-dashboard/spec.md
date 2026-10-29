@@ -7,77 +7,89 @@ Present the existing Android TV clock and alarm controls in a cohesive visual da
 ## Requirements
 
 ### Requirement: Dashboard arranges the existing screen visually
-
-The app SHALL present the existing app logo at the top of a left rail containing only Home and Settings, the actual app name and a live clock in the content header while the floating clock is disabled, existing settings rows on the left, and supplementary previews on the right. Home and Settings SHALL act as shortcuts to the header and existing settings region of the same screen. They SHALL NOT create separate configuration flows, duplicate settings state, or introduce a navigation history. The app SHALL use cohesive colors, typography, rounded surfaces, icons, spacing, and visible focus inspired by the reference image while retaining its current brand and language.
+The app SHALL present the existing app logo at the top of a left navigation rail containing **Home** and **PRO**, plus **Debug** only in debug builds. The unused **Settings** rail entry SHALL be hidden; the existing settings rows SHALL remain available on the Home dashboard. Selecting Home SHALL show the dashboard and its existing settings region. Selecting PRO SHALL show the PRO access screen. Selecting Debug in a debug build SHALL show the debug entitlement controls. These destinations SHALL not duplicate clock, alarm, purchase, or entitlement state. The app SHALL use cohesive colors, typography, rounded surfaces, icons, spacing, and visible focus inspired by the reference image while retaining its current brand and language.
 
 #### Scenario: Use the rail shortcuts
-- **WHEN** the user selects Home or Settings with OK/Select or tap
-- **THEN** the corresponding header or existing settings region is brought into view without changing clock settings, alarm state, or services
-- **AND** the same existing configuration controls remain available
+- **WHEN** the user selects Home, PRO, or Debug with OK/Select or tap
+- **THEN** the matching destination SHALL be shown without changing clock settings, alarm state, scheduled services, or actual Play purchase state
+- **AND** selecting Debug SHALL be possible only in a debug build
+
+#### Scenario: Settings remain available from Home
+- **WHEN** the user selects Home
+- **THEN** the current clock, appearance, and alarm rows SHALL remain available subject to their Free/PRO access rules
+- **AND** the left rail SHALL not show an unused Settings entry
 
 #### Scenario: Read the header clock
-- **WHEN** the user views the redesigned screen or changes clock format through the existing dialog
-- **THEN** the header displays the live time with the existing 12/24-hour and seconds behavior while the floating clock is disabled, and hides that fixed clock while the floating clock is enabled
-- **AND** floating-clock appearance controls do not resize the header clock
+- **WHEN** the user views the redesigned Home dashboard or changes clock format through the existing dialog
+- **THEN** the header SHALL display the live time with the existing 12/24-hour and seconds behavior while the floating clock is disabled, and SHALL hide that fixed clock while the floating clock is enabled
+- **AND** floating-clock appearance controls SHALL not resize the header clock
 
 ### Requirement: Existing settings options and actions remain unchanged
-
-The redesign SHALL retain the current floating-clock enablement, four corner positions, 12/24-hour format, optional seconds, three appearance controls, and alarm controls. Each row and switch SHALL keep its current action, and each dialog SHALL retain its controls and save/close/cancel semantics. Selecting position, format, appearance, or an idle alarm row SHALL open its existing dialog directly. Selecting the floating-clock row SHALL retain its current toggle action. Selecting a ringing alarm row SHALL retain immediate dismissal. The redesign SHALL NOT introduce an Edit step, additional confirmation, replacement slider, new setting, or changed value range, step, default, or persistence timing. Position, format, and appearance rows SHALL remain hidden while the overlay is disabled; the alarm SHALL remain available independently.
+The Home dashboard SHALL retain the current floating-clock enablement, four corner positions, 12/24-hour format, optional seconds, three appearance controls, and alarm controls, with the new Free/PRO access rules applied to appearance and alarm activation. Each row and switch SHALL keep its existing action except where the access rules require navigation to PRO or enforce the Free alarm cooldown. The appearance row SHALL remain visible only while the overlay is enabled; a PRO user's selection SHALL open its existing dialog directly, while a Free user's selection SHALL navigate to the PRO destination. The idle alarm row SHALL retain its existing configuration flow, subject to the Free limit of one successful activation per rolling 24 hours and PRO's unlimited activation allowance. Selecting a ringing alarm row SHALL always dismiss it immediately for all users. Position, format, seconds, and overlay behavior SHALL remain free and unchanged. The redesign SHALL NOT introduce an Edit step, replacement slider, or changed appearance value range, step, default, or persistence timing.
 
 #### Scenario: Open and close a clock configuration dialog
-- **WHEN** the user selects position, format, or appearance with OK/Select or tap and then closes the dialog with its existing OK or Back action
-- **THEN** the same dialog opens directly and its current settings and persistence behavior are retained
-- **AND** there is no intermediate preview action to complete before editing
+- **WHEN** a Free or PRO user selects position or format with OK/Select or tap and closes the dialog with its existing OK or Back action
+- **THEN** the same dialog SHALL open directly and retain its current settings and persistence behavior
+- **AND** there SHALL be no intermediate preview action to complete before editing
+
+#### Scenario: Select appearance according to access
+- **WHEN** a PRO user selects the appearance row
+- **THEN** the existing appearance modal SHALL open directly
+- **AND** when a Free user selects that row, the PRO destination SHALL open without exposing editable appearance controls
 
 #### Scenario: Toggle the floating clock
 - **WHEN** the user activates the floating-clock row or its existing switch
-- **THEN** the current enable/disable and permission flow is invoked once for that activation
-- **AND** the redesigned presentation reflects the same result as the existing flow
+- **THEN** the current enable/disable and permission flow SHALL be invoked once for that activation
+- **AND** the dashboard SHALL reflect the same result as the existing flow
 
 #### Scenario: Configure or dismiss an alarm
 - **WHEN** the user selects the alarm row
-- **THEN** an idle alarm opens the current configuration dialog, while a ringing alarm is stopped through the current dismissal action
-- **AND** the time controls, switch, ACTIVATE, and CANCEL retain their existing meanings
+- **THEN** an idle alarm SHALL open the current configuration dialog, subject to the Free or PRO activation rule
+- **AND** a ringing alarm SHALL always be stopped through the current dismissal action
+- **AND** opening the dialog or changing its time alone SHALL not consume a Free activation
 
 #### Scenario: Hide dependent rows
 - **WHEN** the overlay is disabled
-- **THEN** position, format, and appearance rows are hidden as before, saved values are retained, and the preview does not offer hidden controls
+- **THEN** position, format, and appearance rows SHALL be hidden as before, saved values SHALL be retained, and the preview SHALL not offer hidden controls
 
 ### Requirement: Previews supplement the existing row action
-
-A row's preview SHALL become active immediately when that row or its child switch receives focus, including Up/Down movement with the remote. Focus movement SHALL NOT invoke the row action, open a dialog, toggle a setting, request permission, or stop an alarm. OK/Select or tap SHALL retain the row's existing action. The preview SHALL be read-only and SHALL NOT replace, delay, or suppress the existing row action, take focus from an opened dialog, or add interactive controls. Before any setting receives focus, the panel SHALL show a neutral prompt. Clock previews SHALL use a bundled, offline landscape photograph provided by the user as the background, centered and cropped to fill the existing frame without distortion. The live clock SHALL be drawn over that static image only while the floating clock is enabled; disabling it SHALL leave the landscape visible without a miniature clock. Clock previews SHALL depict existing position, format, seconds, edge distance, size, and internal spacing values in a bounded simulated display. Alarm and enablement previews SHALL show only information already represented by current controls. Previews SHALL reflect accepted changes and SHALL NOT retain content for a hidden row. Preview rendering itself SHALL NOT persist values, request permissions, create an overlay, play audio, or schedule/cancel an alarm; the row's original action retains its existing side effects.
+A row's preview SHALL become active immediately when that row or its child switch receives focus, including Up/Down movement with the remote. Focus movement SHALL NOT invoke the row action, open a dialog, toggle a setting, request permission, or stop an alarm. OK/Select or tap SHALL retain the access-dependent action described by the row. The preview SHALL be read-only and SHALL NOT replace, delay, or suppress that action, take focus from an opened dialog, or add interactive controls. Before any setting receives focus, the panel SHALL show a neutral prompt. Clock previews SHALL use a bundled, offline landscape photograph as the background, centered and cropped to fill the existing frame without distortion. The live clock SHALL be drawn over that static image only while the floating clock is enabled; disabling it SHALL leave the landscape visible without a miniature clock. Clock previews SHALL depict existing position, format, seconds, edge distance, size, and internal spacing values in a bounded simulated display. Alarm and enablement previews SHALL show only information already represented by current controls. Previews SHALL reflect accepted changes and SHALL NOT retain content for a hidden row. Preview rendering itself SHALL NOT persist values, request permissions, create an overlay, play audio, or schedule/cancel an alarm; the row's original action retains its existing side effects.
 
 #### Scenario: Select appearance
 - **WHEN** the user moves focus to Appearance and then selects it
-- **THEN** focus movement immediately shows the appearance preview without opening a modal or changing a preference
-- **AND** OK/Select directly opens the existing appearance modal
-- **AND** the modal retains focus and there is no separate Edit action
+- **THEN** focus movement SHALL immediately show the appearance preview without changing a preference
+- **AND** a PRO user SHALL directly open the existing appearance modal, while a Free user SHALL be taken to the PRO destination
+- **AND** the modal, when opened, SHALL retain focus and there SHALL be no separate Edit action
 
 #### Scenario: Select an enablement row without permission
 - **WHEN** the user selects the floating-clock row while required permission is missing
-- **THEN** the existing enablement permission flow still runs and the supplementary preview reflects the resulting state
-- **AND** preview rendering adds no independent permission request or service start
+- **THEN** the existing enablement permission flow SHALL still run and the supplementary preview SHALL reflect the resulting state
+- **AND** preview rendering SHALL add no independent permission request or service start
 
 #### Scenario: Reflect settings faithfully
-- **WHEN** the user changes a corner, time format, seconds, or appearance value through its existing control
-- **THEN** the supplementary preview depicts the accepted values using a consistent simulated-display scale
-- **AND** no geometry or saved value of the real floating clock is changed by rendering the preview
+- **WHEN** the user changes a corner, time format, seconds, or an available appearance value through its existing control
+- **THEN** the supplementary preview SHALL depict the accepted values using a consistent simulated-display scale
+- **AND** no geometry or saved value of the real floating clock SHALL be changed by rendering the preview
 
 ### Requirement: Visual changes preserve remote and Back behavior
-
-All existing controls SHALL remain reachable using D-pad and OK/Select with visible focus and meaningful labels after layout changes. The rail shortcuts SHALL be reachable without making them a mandatory step before current settings. Passive previews and the header SHALL NOT become focus targets. Existing modal dismissal, focus restoration, and screen-level Back behavior SHALL be preserved; the redesign SHALL NOT add intermediate Back steps through the preview or rail. Layout SHALL keep controls visible at supported TV sizes, including 720p and 1080p, with bounded scrolling where needed.
+All existing controls and new navigation destinations SHALL remain reachable using D-pad and OK/Select with visible focus and meaningful labels. The Home, PRO, and debug-only Debug rail entries SHALL be reachable without making them a mandatory step before dashboard settings. Passive previews and the header SHALL NOT become focus targets. Opening PRO or Debug SHALL keep navigation state predictable; pressing Back from either destination SHALL return to Home, and pressing Back from Home with no dialog open SHALL retain existing screen-level exit behavior. Existing modal dismissal and focus restoration SHALL be preserved; route navigation SHALL not add an extra Back step through the preview or rail. Layout SHALL keep controls visible at supported TV sizes, including 720p and 1080p, with bounded scrolling where needed.
 
 #### Scenario: Dismiss appearance with the remote
-- **WHEN** the user selects Appearance, adjusts its existing controls, and presses Back or OK
-- **THEN** the modal closes, adjusted values remain saved, and focus returns to its opening row as before
+- **WHEN** a PRO user selects Appearance, adjusts its existing controls, and presses Back or OK
+- **THEN** the modal SHALL close, adjusted values SHALL remain saved, and focus SHALL return to its opening row as before
+
+#### Scenario: Return from PRO or Debug
+- **WHEN** the user presses Back while the PRO destination or debug-only Debug destination is open
+- **THEN** the Home dashboard SHALL be shown with usable focus
+- **AND** a later Back press from Home with no dialog open SHALL follow existing screen-level behavior
 
 #### Scenario: Exit the main screen
-- **WHEN** the user presses Back with no dialog open
-- **THEN** existing screen-level Back behavior is retained without requiring traversal through preview, settings, and rail regions
+- **WHEN** the user presses Back on Home with no dialog open
+- **THEN** existing screen-level Back behavior SHALL be retained without requiring traversal through preview or rail focus targets
 
 #### Scenario: Use a smaller TV display
-- **WHEN** the redesigned screen is displayed at 720p or 1080p
-- **THEN** rows, dialog controls, and focus indicators remain readable and reachable without clipping or reserving space for an advertising placeholder
+- **WHEN** any destination is displayed at 720p or 1080p
+- **THEN** its rows, purchase actions, dialog controls, and focus indicators SHALL remain readable and reachable without clipping or reserving space for an advertising placeholder
 
 ### Requirement: Advertising placeholder remains hidden
 
