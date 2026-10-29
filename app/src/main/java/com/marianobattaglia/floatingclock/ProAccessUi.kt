@@ -76,13 +76,26 @@ internal fun ProAccessContent(
         ) {
             Text(stringResource(R.string.pro_purchase_action))
         }
+        if (state.effectiveStatus == ActualProStatus.PRO) {
+            Text(
+                stringResource(
+                    if (state.reviewAccessGranted) {
+                        R.string.review_access_active
+                    } else {
+                        R.string.pro_access_active
+                    }
+                ),
+                color = DashboardColors.ProGold,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
         billingFeedback(state.feedback)?.let { message ->
             Text(stringResource(message))
         }
-        Text(stringResource(R.string.pro_restore_note))
-        if (state.reviewAccessGranted) {
-            Text(stringResource(R.string.review_access_active))
-        } else if (state.reviewAccessConfigured) {
+        if (state.effectiveStatus != ActualProStatus.PRO) {
+            Text(stringResource(R.string.pro_restore_note))
+        }
+        if (!state.reviewAccessGranted && state.reviewAccessConfigured) {
             Button(onClick = onOpenReviewAccess) {
                 Text(stringResource(R.string.review_access_action))
             }

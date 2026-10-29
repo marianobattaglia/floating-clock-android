@@ -18,6 +18,7 @@
     <string name="pro_purchase_explanation">Desbloqueie o PRO com um único pagamento pelo Google Play. Sem subscrição.</string>
     <string name="pro_lifetime_price">Preço: %1$s</string>
     <string name="pro_purchase_action">Desbloquear PRO</string>
+    <string name="pro_access_active">O PRO está ativo.</string>
     <string name="pro_restore_note">As compras são restauradas automaticamente quando o Google Play está disponível e utiliza a mesma conta Google Play.</string>
     <string name="review_access_action">Introduzir código de revisão</string>
     <string name="review_access_title">Acesso para revisão</string>

@@ -26,6 +26,7 @@
     <string name="pro_purchase_explanation">Unlock PRO with a one-time purchase through Google Play. No subscription.</string>
     <string name="pro_lifetime_price">Price: %1$s</string>
     <string name="pro_purchase_action">Unlock PRO</string>
+    <string name="pro_access_active">PRO is active.</string>
     <string name="pro_restore_note">Purchases are restored automatically when Google Play is available and you use the same Google Play account.</string>
     <string name="review_access_action">Enter review code</string>
     <string name="review_access_title">Reviewer access</string>
