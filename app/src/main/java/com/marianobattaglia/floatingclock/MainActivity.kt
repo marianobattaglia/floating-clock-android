@@ -19,6 +19,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
@@ -59,6 +60,8 @@ import android.content.BroadcastReceiver
 import android.content.IntentFilter
 import android.app.ActivityManager
 import android.text.format.DateFormat
+import androidx.compose.material3.Surface as PhoneSurface
+import androidx.compose.material3.Switch as PhoneMaterialSwitch
 
 class MainActivity : ComponentActivity() {
     override fun onResume() {
@@ -69,13 +72,22 @@ class MainActivity : ComponentActivity() {
     @OptIn(ExperimentalTvMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val isAndroidTv = packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)
         setContent {
             FloatingClockTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    shape = RectangleShape
-                ) {
-                    MainScreen()
+                if (isAndroidTv) {
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        shape = RectangleShape
+                    ) {
+                        MainScreen()
+                    }
+                } else {
+                    FloatingClockPhoneTheme {
+                        PhoneSurface(modifier = Modifier.fillMaxSize()) {
+                            MainScreen(isPhone = true)
+                        }
+                    }
                 }
             }
         }
@@ -83,7 +95,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun MainScreen() {
+fun MainScreen(isPhone: Boolean = false) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val inspectionMode = LocalInspectionMode.current
@@ -118,39 +130,76 @@ fun MainScreen() {
         }
     }
 
-    ClockDashboard(
-        floatingEnabled = floatingEnabled,
-        clock = { visible, onTimeChanged -> Clock(onTimeChanged = onTimeChanged, visible = visible) },
-        debugEnabled = BuildConfig.DEBUG,
-        proContent = {
-            ProAccessContent(
-                state = proState,
-                onPurchase = proManager::launchProPurchase,
-                onOpenReviewAccess = { showReviewerAccessDialog = true }
+    val settings: @Composable ColumnScope.() -> Unit = {
+        FloatingClockSwitch(
+            isChecked = floatingEnabled,
+            setFloatingEnabled = setFloatingEnabled,
+            isPhone = isPhone
+        )
+        if (floatingEnabled) {
+            FloatingClockPositionRow(isPhone = isPhone)
+            FloatingClockFormatRow(isPhone = isPhone)
+            FloatingClockAppearanceRow(
+                hasPro = proState.effectiveStatus == ActualProStatus.PRO,
+                isPhone = isPhone
             )
-        },
-        debugContent = {
-            ProDebugContent(proState, proManager::setDebugOverride)
-        },
-        settings = {
-            FloatingClockSwitch(
-                isChecked = floatingEnabled,
-                setFloatingEnabled = setFloatingEnabled
-            )
-            if (floatingEnabled) {
-                FloatingClockPositionRow()
-                FloatingClockFormatRow()
-                FloatingClockAppearanceRow(hasPro = proState.effectiveStatus == ActualProStatus.PRO)
-            }
-            AlarmConfigRow(isPro = proState.effectiveStatus == ActualProStatus.PRO)
         }
-    )
+        AlarmConfigRow(
+            isPro = proState.effectiveStatus == ActualProStatus.PRO,
+            isPhone = isPhone
+        )
+    }
+    val clock: @Composable (Boolean, (String) -> Unit) -> Unit = { visible, onTimeChanged ->
+        Clock(onTimeChanged = onTimeChanged, visible = visible, isPhone = isPhone)
+    }
+    if (isPhone) {
+        PhoneDashboard(
+            floatingEnabled = floatingEnabled,
+            clock = clock,
+            debugEnabled = BuildConfig.DEBUG,
+            proContent = {
+                PhoneProAccessContent(
+                    state = proState,
+                    onPurchase = proManager::launchProPurchase,
+                    onOpenReviewAccess = { showReviewerAccessDialog = true }
+                )
+            },
+            debugContent = {
+                PhoneProDebugContent(proState, proManager::setDebugOverride)
+            },
+            settings = settings
+        )
+    } else {
+        ClockDashboard(
+            floatingEnabled = floatingEnabled,
+            clock = clock,
+            debugEnabled = BuildConfig.DEBUG,
+            proContent = {
+                ProAccessContent(
+                    state = proState,
+                    onPurchase = proManager::launchProPurchase,
+                    onOpenReviewAccess = { showReviewerAccessDialog = true }
+                )
+            },
+            debugContent = {
+                ProDebugContent(proState, proManager::setDebugOverride)
+            },
+            settings = settings
+        )
+    }
 
     if (showReviewerAccessDialog) {
-        ReviewerAccessDialog(
-            onDismissRequest = { showReviewerAccessDialog = false },
-            onSubmit = proManager::redeemReviewAccessCode
-        )
+        if (isPhone) {
+            PhoneReviewerAccessDialog(
+                onDismissRequest = { showReviewerAccessDialog = false },
+                onSubmit = proManager::redeemReviewAccessCode
+            )
+        } else {
+            ReviewerAccessDialog(
+                onDismissRequest = { showReviewerAccessDialog = false },
+                onSubmit = proManager::redeemReviewAccessCode
+            )
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -167,7 +216,8 @@ fun MainScreen() {
 fun Clock(
     modifier: Modifier = Modifier,
     onTimeChanged: (String) -> Unit = {},
-    visible: Boolean = true
+    visible: Boolean = true,
+    isPhone: Boolean = false
 ) {
     var time by remember { mutableStateOf("") }
     val context = LocalContext.current
@@ -250,7 +300,8 @@ fun Clock(
         ) {
             Text(
                 text = time,
-                fontSize = 36.sp,
+                fontSize = if (isPhone) 26.sp else 36.sp,
+                color = DashboardColors.Text,
                 fontWeight = FontWeight.Bold
             )
         }
@@ -261,7 +312,8 @@ fun Clock(
 @Composable
 fun FloatingClockSwitch(
     isChecked: Boolean,
-    setFloatingEnabled: (Boolean) -> Unit
+    setFloatingEnabled: (Boolean) -> Unit,
+    isPhone: Boolean = false
 ) {
     val context = LocalContext.current
     var pendingEnable by remember { mutableStateOf(false) }
@@ -348,12 +400,14 @@ fun FloatingClockSwitch(
     SettingsRow(
         title = stringResource(R.string.clock_show_floating),
         setting = DashboardSetting.Floating,
+        isPhone = isPhone,
         onClick = { onToggle(!isChecked) }
     ) {
-        Switch(
-            checked = isChecked,
-            onCheckedChange = onToggle
-        )
+        if (isPhone) {
+            PhoneMaterialSwitch(checked = isChecked, onCheckedChange = onToggle)
+        } else {
+            Switch(checked = isChecked, onCheckedChange = onToggle)
+        }
     }
 }
 
@@ -371,14 +425,25 @@ internal fun SettingsRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     setting: DashboardSetting? = null,
+    isPhone: Boolean = false,
     trailing: @Composable RowScope.() -> Unit
 ) {
-    DashboardSettingsRow(title, onClick, modifier, setting, trailing)
+    if (isPhone) {
+        PhoneSettingsRow(
+            title = title,
+            subtitle = setting?.let { stringResource(it.subtitleRes) },
+            onClick = onClick,
+            modifier = modifier,
+            trailing = trailing
+        )
+    } else {
+        DashboardSettingsRow(title, onClick, modifier, setting, trailing)
+    }
 }
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
-fun FloatingClockPositionRow() {
+fun FloatingClockPositionRow(isPhone: Boolean = false) {
     val context = LocalContext.current
     val prefs = remember(context) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -415,13 +480,14 @@ fun FloatingClockPositionRow() {
     SettingsRow(
         title = stringResource(R.string.clock_position),
         setting = DashboardSetting.Position,
+        isPhone = isPhone,
         onClick = { showDialog = true }
     ) {
         Text(text = stringResource(currentPosition.labelRes))
     }
 
     if (showDialog) {
-        SettingsDialog(onDismissRequest = { showDialog = false }) {
+        SettingsDialog(onDismissRequest = { showDialog = false }, isPhone = isPhone) {
             Text(text = stringResource(R.string.clock_select_position), fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
             val applySelection: (FloatingClockPosition) -> Unit = { position ->
                 dialogPosition = position
@@ -447,11 +513,13 @@ fun FloatingClockPositionRow() {
                         PositionButton(
                             selected = dialogPosition == FloatingClockPosition.TOP_LEFT,
                             label = stringResource(FloatingClockPosition.TOP_LEFT.labelRes),
+                            isPhone = isPhone,
                             onClick = { applySelection(FloatingClockPosition.TOP_LEFT) }
                         )
                         PositionButton(
                             selected = dialogPosition == FloatingClockPosition.TOP_RIGHT,
                             label = stringResource(FloatingClockPosition.TOP_RIGHT.labelRes),
+                            isPhone = isPhone,
                             onClick = { applySelection(FloatingClockPosition.TOP_RIGHT) }
                         )
                     }
@@ -462,11 +530,13 @@ fun FloatingClockPositionRow() {
                         PositionButton(
                             selected = dialogPosition == FloatingClockPosition.BOTTOM_LEFT,
                             label = stringResource(FloatingClockPosition.BOTTOM_LEFT.labelRes),
+                            isPhone = isPhone,
                             onClick = { applySelection(FloatingClockPosition.BOTTOM_LEFT) }
                         )
                         PositionButton(
                             selected = dialogPosition == FloatingClockPosition.BOTTOM_RIGHT,
                             label = stringResource(FloatingClockPosition.BOTTOM_RIGHT.labelRes),
+                            isPhone = isPhone,
                             onClick = { applySelection(FloatingClockPosition.BOTTOM_RIGHT) }
                         )
                     }
@@ -476,7 +546,7 @@ fun FloatingClockPositionRow() {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center
             ) {
-                Button(onClick = { showDialog = false }) {
+                FormFactorButton(isPhone = isPhone, onClick = { showDialog = false }) {
                     Text(stringResource(R.string.action_ok))
                 }
             }
@@ -486,7 +556,7 @@ fun FloatingClockPositionRow() {
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
-fun FloatingClockFormatRow() {
+fun FloatingClockFormatRow(isPhone: Boolean = false) {
     val context = LocalContext.current
     val prefs = remember(context) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -523,6 +593,7 @@ fun FloatingClockFormatRow() {
     SettingsRow(
         title = stringResource(R.string.clock_format),
         setting = DashboardSetting.Format,
+        isPhone = isPhone,
         onClick = { showDialog = true }
     ) {
         val label = if (use24h) stringResource(R.string.clock_format_24_hour) else stringResource(R.string.clock_format_12_hour)
@@ -530,10 +601,11 @@ fun FloatingClockFormatRow() {
     }
 
     if (showDialog) {
-        SettingsDialog(onDismissRequest = { showDialog = false }) {
+        SettingsDialog(onDismissRequest = { showDialog = false }, isPhone = isPhone) {
             Text(text = stringResource(R.string.clock_format), fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
             SettingsRow(
                 title = stringResource(R.string.clock_show_seconds),
+                isPhone = isPhone,
                 onClick = {
                     val newValue = !showSeconds
                     showSeconds = newValue
@@ -541,17 +613,29 @@ fun FloatingClockFormatRow() {
                     notifyClockSecondsChanged(context, newValue)
                 }
             ) {
-                Switch(
-                    checked = showSeconds,
-                    onCheckedChange = { checked ->
-                        showSeconds = checked
-                        prefs.edit().putBoolean(PREF_CLOCK_SHOW_SECONDS, checked).apply()
-                        notifyClockSecondsChanged(context, checked)
-                    }
-                )
+                if (isPhone) {
+                    PhoneMaterialSwitch(
+                        checked = showSeconds,
+                        onCheckedChange = { checked ->
+                            showSeconds = checked
+                            prefs.edit().putBoolean(PREF_CLOCK_SHOW_SECONDS, checked).apply()
+                            notifyClockSecondsChanged(context, checked)
+                        }
+                    )
+                } else {
+                    Switch(
+                        checked = showSeconds,
+                        onCheckedChange = { checked ->
+                            showSeconds = checked
+                            prefs.edit().putBoolean(PREF_CLOCK_SHOW_SECONDS, checked).apply()
+                            notifyClockSecondsChanged(context, checked)
+                        }
+                    )
+                }
             }
             SettingsRow(
                 title = stringResource(R.string.clock_use_24_hour),
+                isPhone = isPhone,
                 onClick = {
                     val newValue = !use24h
                     use24h = newValue
@@ -559,20 +643,31 @@ fun FloatingClockFormatRow() {
                     notifyClockFormatChanged(context, newValue)
                 }
             ) {
-                Switch(
-                    checked = use24h,
-                    onCheckedChange = { checked ->
-                        use24h = checked
-                        prefs.edit().putBoolean(PREF_CLOCK_USE_24H, checked).apply()
-                        notifyClockFormatChanged(context, checked)
-                    }
-                )
+                if (isPhone) {
+                    PhoneMaterialSwitch(
+                        checked = use24h,
+                        onCheckedChange = { checked ->
+                            use24h = checked
+                            prefs.edit().putBoolean(PREF_CLOCK_USE_24H, checked).apply()
+                            notifyClockFormatChanged(context, checked)
+                        }
+                    )
+                } else {
+                    Switch(
+                        checked = use24h,
+                        onCheckedChange = { checked ->
+                            use24h = checked
+                            prefs.edit().putBoolean(PREF_CLOCK_USE_24H, checked).apply()
+                            notifyClockFormatChanged(context, checked)
+                        }
+                    )
+                }
             }
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center
             ) {
-                Button(onClick = { showDialog = false }) {
+                FormFactorButton(isPhone = isPhone, onClick = { showDialog = false }) {
                     Text(stringResource(R.string.action_ok))
                 }
             }
@@ -582,12 +677,17 @@ fun FloatingClockFormatRow() {
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
-fun PositionButton(selected: Boolean, label: String, onClick: () -> Unit) {
-    Button(onClick = onClick, modifier = Modifier.semantics {
+fun PositionButton(
+    selected: Boolean,
+    label: String,
+    isPhone: Boolean = false,
+    onClick: () -> Unit
+) {
+    FormFactorButton(onClick = onClick, isPhone = isPhone, modifier = Modifier.semantics {
         contentDescription = label
         this.selected = selected
     }) {
-        Text(stringResource(if (selected) R.string.symbol_selected else R.string.symbol_unselected))
+        Text(if (isPhone) label else stringResource(if (selected) R.string.symbol_selected else R.string.symbol_unselected))
     }
 }
 
@@ -597,7 +697,7 @@ private const val PENDING_ALARM_ACTION_ACTIVATE = 2
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
-fun AlarmConfigRow(isPro: Boolean) {
+fun AlarmConfigRow(isPro: Boolean, isPhone: Boolean = false) {
     val context = LocalContext.current
     val prefs = remember(context) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -780,9 +880,37 @@ fun AlarmConfigRow(isPro: Boolean) {
     }
 
     val selectPreview = LocalPreviewSelection.current
+    val onAlarmToggle: (Boolean) -> Unit = onAlarmToggle@{ checked ->
+        selectPreview(DashboardSetting.Alarm)
+        if (checked && !canActivateAlarm()) {
+            showCooldownMessage()
+            return@onAlarmToggle
+        }
+        if (checked && (alarmHour < 0 || alarmMinute < 0)) {
+            openAlarmConfiguration()
+            return@onAlarmToggle
+        }
+        if (checked) {
+            if (AlarmScheduler.needsExactAlarmPermission(context)) {
+                requestExactAlarmAccess(
+                    PENDING_ALARM_ACTION_ACTIVATE,
+                    alarmHour,
+                    alarmMinute
+                )
+                return@onAlarmToggle
+            }
+            exactAccessMissing = false
+            scheduleSelectedAlarm(alarmHour, alarmMinute, closeDialog = false)
+        } else {
+            AlarmScheduler.cancelAlarm(context)
+            alarmEnabled = false
+            prefs.edit().putBoolean(PREF_ALARM_ENABLED, false).apply()
+        }
+    }
     SettingsRow(
         title = stringResource(R.string.alarm_title),
         setting = DashboardSetting.Alarm,
+        isPhone = isPhone,
         onClick = {
             if (alarmActive) {
                 AlarmScheduler.cancelAlarm(context)
@@ -795,40 +923,15 @@ fun AlarmConfigRow(isPro: Boolean) {
             }
         }
     ) {
-        Switch(
-            checked = alarmEnabled,
-            onCheckedChange = { checked ->
-                selectPreview(DashboardSetting.Alarm)
-                if (checked && !canActivateAlarm()) {
-                    showCooldownMessage()
-                    return@Switch
-                }
-                if (checked && (alarmHour < 0 || alarmMinute < 0)) {
-                    openAlarmConfiguration()
-                    return@Switch
-                }
-                if (checked) {
-                    if (AlarmScheduler.needsExactAlarmPermission(context)) {
-                        requestExactAlarmAccess(
-                            PENDING_ALARM_ACTION_ACTIVATE,
-                            alarmHour,
-                            alarmMinute
-                        )
-                        return@Switch
-                    }
-                    exactAccessMissing = false
-                    scheduleSelectedAlarm(alarmHour, alarmMinute, closeDialog = false)
-                } else {
-                    AlarmScheduler.cancelAlarm(context)
-                    alarmEnabled = false
-                    prefs.edit().putBoolean(PREF_ALARM_ENABLED, false).apply()
-                }
-            }
-        )
+        if (isPhone) {
+            PhoneMaterialSwitch(checked = alarmEnabled, onCheckedChange = onAlarmToggle)
+        } else {
+            Switch(checked = alarmEnabled, onCheckedChange = onAlarmToggle)
+        }
     }
 
     if (showDialog) {
-        SettingsDialog(onDismissRequest = { showDialog = false }) {
+        SettingsDialog(onDismissRequest = { showDialog = false }, isPhone = isPhone) {
             Text(text = stringResource(R.string.alarm_configure), fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
             if (exactAccessMissing) {
                 Text(
@@ -854,7 +957,7 @@ fun AlarmConfigRow(isPro: Boolean) {
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     val increaseHour = stringResource(R.string.alarm_increase_hour)
-                    Button(onClick = { dialogHour = (dialogHour + 1) % 24 },
+                    FormFactorButton(isPhone = isPhone, onClick = { dialogHour = (dialogHour + 1) % 24 },
                         modifier = Modifier.semantics { contentDescription = increaseHour }) {
                         Text(stringResource(R.string.symbol_increase))
                     }
@@ -864,7 +967,7 @@ fun AlarmConfigRow(isPro: Boolean) {
                         fontWeight = FontWeight.Bold
                     )
                     val decreaseHour = stringResource(R.string.alarm_decrease_hour)
-                    Button(onClick = { dialogHour = (dialogHour + 23) % 24 },
+                    FormFactorButton(isPhone = isPhone, onClick = { dialogHour = (dialogHour + 23) % 24 },
                         modifier = Modifier.semantics { contentDescription = decreaseHour }) {
                         Text(stringResource(R.string.symbol_decrease))
                     }
@@ -877,7 +980,7 @@ fun AlarmConfigRow(isPro: Boolean) {
                 )
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     val increaseMinute = stringResource(R.string.alarm_increase_minute)
-                    Button(onClick = { dialogMinute = (dialogMinute + 1) % 60 },
+                    FormFactorButton(isPhone = isPhone, onClick = { dialogMinute = (dialogMinute + 1) % 60 },
                         modifier = Modifier.semantics { contentDescription = increaseMinute }) {
                         Text(stringResource(R.string.symbol_increase))
                     }
@@ -887,7 +990,7 @@ fun AlarmConfigRow(isPro: Boolean) {
                         fontWeight = FontWeight.Bold
                     )
                     val decreaseMinute = stringResource(R.string.alarm_decrease_minute)
-                    Button(onClick = { dialogMinute = (dialogMinute + 59) % 60 },
+                    FormFactorButton(isPhone = isPhone, onClick = { dialogMinute = (dialogMinute + 59) % 60 },
                         modifier = Modifier.semantics { contentDescription = decreaseMinute }) {
                         Text(stringResource(R.string.symbol_decrease))
                     }
@@ -897,12 +1000,12 @@ fun AlarmConfigRow(isPro: Boolean) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Button(onClick = {
+                FormFactorButton(isPhone = isPhone, onClick = {
                     scheduleSelectedAlarm(dialogHour, dialogMinute, closeDialog = true)
                 }, enabled = canActivateAlarm()) {
                     Text(stringResource(R.string.action_activate))
                 }
-                Button(onClick = {
+                FormFactorButton(isPhone = isPhone, onClick = {
                     AlarmScheduler.cancelAlarm(context)
                     alarmEnabled = false
                     prefs.edit()

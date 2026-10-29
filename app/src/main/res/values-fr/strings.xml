@@ -18,6 +18,7 @@
     <string name="pro_purchase_explanation">Débloquez PRO avec un achat unique via Google Play. Sans abonnement.</string>
     <string name="pro_lifetime_price">Prix : %1$s</string>
     <string name="pro_purchase_action">Débloquer PRO</string>
+    <string name="pro_access_active">PRO est activé.</string>
     <string name="pro_restore_note">Les achats sont restaurés automatiquement lorsque Google Play est disponible et que vous utilisez le même compte Google Play.</string>
     <string name="review_access_action">Saisir le code de révision</string>
     <string name="review_access_title">Accès pour la révision</string>

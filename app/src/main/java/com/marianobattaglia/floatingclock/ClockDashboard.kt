@@ -299,25 +299,49 @@ private fun Modifier.dashboardTap(onClick: () -> Unit): Modifier {
 /** Shared presentation only; each caller retains its existing dialog controls and callbacks. */
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
-internal fun SettingsDialog(onDismissRequest: () -> Unit, content: @Composable ColumnScope.() -> Unit) {
+internal fun SettingsDialog(
+    onDismissRequest: () -> Unit,
+    isPhone: Boolean = false,
+    content: @Composable ColumnScope.() -> Unit
+) {
     Dialog(onDismissRequest = onDismissRequest) {
         CompositionLocalProvider(
             LocalPreviewSelection provides {},
             LocalSelectedPreview provides null,
             LocalFirstSettingFocus provides null
         ) {
-            Surface(
-                modifier = Modifier.widthIn(max = 560.dp).fillMaxWidth()
-                    .heightIn(max = LocalConfiguration.current.screenHeightDp.dp * 0.88f),
-                shape = RoundedCornerShape(20.dp),
-                border = Border(BorderStroke(1.dp, DashboardColors.Border), shape = RoundedCornerShape(20.dp))
-            ) {
-                Column(
-                    modifier = Modifier.verticalScroll(rememberScrollState()).padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(14.dp),
-                    content = content
-                )
+            if (isPhone) {
+                androidx.compose.material3.Surface(
+                    modifier = Modifier.widthIn(max = 440.dp).fillMaxWidth()
+                        .heightIn(max = LocalConfiguration.current.screenHeightDp.dp * 0.88f),
+                    shape = androidx.compose.material3.MaterialTheme.shapes.extraLarge,
+                    tonalElevation = 6.dp
+                ) {
+                    ProvideTextStyle(
+                        MaterialTheme.typography.bodyMedium.copy(color = DashboardColors.Text)
+                    ) {
+                        Column(
+                            modifier = Modifier.verticalScroll(rememberScrollState()).padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                            content = content
+                        )
+                    }
+                }
+            } else {
+                Surface(
+                    modifier = Modifier.widthIn(max = 560.dp).fillMaxWidth()
+                        .heightIn(max = LocalConfiguration.current.screenHeightDp.dp * 0.88f),
+                    shape = RoundedCornerShape(20.dp),
+                    border = Border(BorderStroke(1.dp, DashboardColors.Border), shape = RoundedCornerShape(20.dp))
+                ) {
+                    Column(
+                        modifier = Modifier.verticalScroll(rememberScrollState()).padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(14.dp),
+                        content = content
+                    )
+                }
             }
         }
     }

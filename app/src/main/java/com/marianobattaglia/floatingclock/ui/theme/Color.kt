@@ -10,6 +10,7 @@ object DashboardColors {
     val Focused = Color(0xFF283B55)
     val Border = Color(0xFF303D4E)
     val Accent = Color(0xFF69A5FF)
+    val ProGold = Color(0xFFFFD166)
     val Text = Color(0xFFF3F6FC)
     val Muted = Color(0xFFA5B2C5)
 }

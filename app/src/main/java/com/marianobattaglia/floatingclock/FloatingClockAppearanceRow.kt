@@ -35,7 +35,7 @@ import androidx.tv.material3.Text
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
-fun FloatingClockAppearanceRow(hasPro: Boolean) {
+fun FloatingClockAppearanceRow(hasPro: Boolean, isPhone: Boolean = false) {
     val context = LocalContext.current
     val prefs = remember(context) { context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE) }
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -74,6 +74,7 @@ fun FloatingClockAppearanceRow(hasPro: Boolean) {
     SettingsRow(
         title = stringResource(R.string.clock_appearance),
         setting = DashboardSetting.Appearance,
+        isPhone = isPhone,
         modifier = Modifier.focusRequester(rowFocus),
         onClick = {
             if (!hasPro) {
@@ -93,13 +94,14 @@ fun FloatingClockAppearanceRow(hasPro: Boolean) {
     }
     if (showDialog) {
         val close = { showDialog = false }
-        SettingsDialog(onDismissRequest = close) {
+        SettingsDialog(onDismissRequest = close, isPhone = isPhone) {
             Text(stringResource(R.string.clock_appearance), fontSize = 20.sp, fontWeight = FontWeight.SemiBold)
             AppearanceStepper(
                 label = stringResource(R.string.appearance_edge_distance),
                 decreaseLabel = stringResource(R.string.appearance_decrease_edge),
                 increaseLabel = stringResource(R.string.appearance_increase_edge),
                 value = stringResource(R.string.value_distance_dp, appearance.edgeDistanceDp),
+                isPhone = isPhone,
                 decreaseModifier = Modifier.focusRequester(initialFocus),
                 onAdjust = { increase ->
                     save(appearance.copy(edgeDistanceDp = ClockAppearanceLimits.edgeDistance.adjust(
@@ -112,6 +114,7 @@ fun FloatingClockAppearanceRow(hasPro: Boolean) {
                 decreaseLabel = stringResource(R.string.appearance_decrease_size),
                 increaseLabel = stringResource(R.string.appearance_increase_size),
                 value = stringResource(R.string.value_percent, appearance.scalePercent),
+                isPhone = isPhone,
                 onAdjust = { increase ->
                     save(appearance.copy(scalePercent = ClockAppearanceLimits.overallSize.adjust(
                         appearance.scalePercent, increase
@@ -123,6 +126,7 @@ fun FloatingClockAppearanceRow(hasPro: Boolean) {
                 decreaseLabel = stringResource(R.string.appearance_decrease_spacing),
                 increaseLabel = stringResource(R.string.appearance_increase_spacing),
                 value = stringResource(R.string.value_percent, appearance.paddingPercent),
+                isPhone = isPhone,
                 onAdjust = { increase ->
                     save(appearance.copy(paddingPercent = ClockAppearanceLimits.internalSpacing.adjust(
                         appearance.paddingPercent, increase
@@ -130,7 +134,7 @@ fun FloatingClockAppearanceRow(hasPro: Boolean) {
                 }
             )
             Text(stringResource(R.string.appearance_help))
-            Button(onClick = close) { Text(stringResource(R.string.action_ok)) }
+            FormFactorButton(isPhone = isPhone, onClick = close) { Text(stringResource(R.string.action_ok)) }
             LaunchedEffect(Unit) {
                 withFrameNanos { }
                 initialFocus.requestFocus()
@@ -146,6 +150,7 @@ private fun AppearanceStepper(
     value: String,
     decreaseLabel: String,
     increaseLabel: String,
+    isPhone: Boolean,
     decreaseModifier: Modifier = Modifier,
     onAdjust: (Boolean) -> Unit
 ) {
@@ -159,12 +164,14 @@ private fun AppearanceStepper(
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Keep both buttons focusable even at a bound; the range makes it a no-op.
-            Button(
+            FormFactorButton(
+                isPhone = isPhone,
                 modifier = decreaseModifier.semantics { contentDescription = decreaseLabel },
                 onClick = { onAdjust(false) }
             ) { Text(stringResource(R.string.symbol_decrease)) }
             Text(value, modifier = Modifier.width(80.dp))
-            Button(
+            FormFactorButton(
+                isPhone = isPhone,
                 modifier = Modifier.semantics { contentDescription = increaseLabel },
                 onClick = { onAdjust(true) }
             ) { Text(stringResource(R.string.symbol_increase)) }

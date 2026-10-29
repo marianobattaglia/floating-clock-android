@@ -1,6 +1,6 @@
-# FloatingClock (Android TV)
+# FloatingClock (Android TV and Android Phones)
 
-FloatingClock is a lightweight Android TV app that shows the current time and can display a floating clock overlay on top of other apps. It also includes an alarm that can ring while you are watching videos or using other apps.
+FloatingClock shows the current time and can display a floating clock overlay on top of other apps. It also includes an alarm that can ring while you are watching videos or using other apps. The app provides a remote-first dashboard on Android TV and a separate touch-first interface on Android phones; both use the same clock, alarm, preferences, and PRO entitlement.
 
 ## Screenshots and Media
 
@@ -42,6 +42,7 @@ https://github.com/user-attachments/assets/8370ff31-11fa-409f-b0de-d630d15c747f
 - Alarm with HH:MM configuration in 24-hour format.
 - Alarm sound plays in the background and the overlay clock blinks red while it is active.
 - Alarm can be dismissed by entering the app and selecting the Alarm row.
+- Separate touch-first navigation and settings for Android phones; the Android TV dashboard remains remote-first.
 
 ## Languages
 
@@ -99,15 +100,17 @@ catalog keys cannot detect every hardcoded UI string.
 - `POST_NOTIFICATIONS`: Required on Android 13+ for foreground service notifications.
 - `SCHEDULE_EXACT_ALARM`: On Android 12+, requested when opening Alarm if exact access is missing. It is not needed to show the floating clock.
 
+Phones and Android TV use the same permission and service behavior. On phones, enabling the overlay opens Android's **Display over other apps** settings when access is missing. Android 13+ also asks for notification permission before the foreground clock service starts. From Android 12 onward, if exact-alarm access is denied, the app can still schedule an approximate alarm that may ring late.
+
 ## Usage
 
 1) Open the app and toggle **Show Floating Clock** to enable the overlay.
 2) Use **Clock position** to choose a corner for the overlay.
 3) Use **Clock format** to toggle 12/24-hour format and show/hide seconds.
-4) In Free, selecting **Clock appearance** opens PRO. PRO can change **Edge distance** (0–128 dp, steps of 4 dp, default 16 dp), **Overall size** (50–200%, steps of 10%, default 100%), and **Internal spacing** (0–300%, steps of 10%, default 100%) with the remote’s **−** and **+** buttons.
+4) In Free, selecting **Clock appearance** opens PRO. PRO can change **Edge distance** (0–128 dp, steps of 4 dp, default 16 dp), **Overall size** (50–200%, steps of 10%, default 100%), and **Internal spacing** (0–300%, steps of 10%, default 100%) with the **−** and **+** buttons.
 5) Select the **Alarm** row to set the alarm time. Free allows one successfully scheduled activation per rolling 24 hours. Canceling or dismissing an alarm remains available; PRO has no activation limit. On Android 12+, if exact-alarm access is missing, system settings opens before the configuration dialog. Returning without granting access still lets you configure an alarm with approximate timing.
 6) Press **ACTIVATE** to schedule the alarm or **CANCEL** to disable it. Without exact-alarm access, an inexact best-effort alarm is used and may ring later than selected.
-7) Use **PRO** in the left rail to check access or complete the one-time Google Play purchase. An owned purchase is restored automatically through the same Google Play account when Billing is available.
+7) Open **PRO** from the TV left rail or phone bottom navigation to check access or complete the one-time Google Play purchase. An owned purchase is restored automatically through the same Google Play account when Billing is available.
 8) When the alarm rings, the overlay clock blinks red and an alarm sound plays. Open the app and select the **Alarm** row to stop it immediately.
 
 Appearance changes apply and save immediately. **OK** or Back closes the modal and keeps your adjustments. At 100%, size and spacing match the original overlay; overall size scales both text and padding, while internal spacing changes only padding when space permits. The same edge distance applies to both edges of the selected corner. If the requested clock cannot fit, it is scaled down and its edge distance limited to keep the complete time visible, without changing your saved choices. These controls do not resize the main screen clock.
@@ -121,7 +124,9 @@ See [AGENTS.md](AGENTS.md) for Codex guidance and development checks.
 
 ## Dashboard layout
 
-The dashboard places the app logo and **Home** / **PRO** shortcuts in a left rail, with **Debug** included only in debug builds. Existing settings remain on Home; PRO shows the current access status and Google Play purchase action, while Debug can locally simulate Free and PRO. Back returns from PRO or Debug to Home. D-pad and Select operate the controls.
+On Android TV, the dashboard places the app logo and **Home** / **PRO** shortcuts in a left rail, with **Debug** included only in debug builds. Existing settings remain on Home; PRO shows the current access status and Google Play purchase action, while Debug can locally simulate Free and PRO. Back returns from PRO or Debug to Home. D-pad and Select operate the controls.
+
+On Android phones, the app opens a separate vertically scrolling Home screen with touch-friendly setting rows and a bottom navigation bar for **Home** and **PRO**; **Debug** appears there only in debug builds. Settings use the same preferences, service actions, alarm rules, dialogs, and PRO gates as Android TV. Phone layout adapts to portrait and landscape orientation; the Android TV dashboard keeps its rail, preview, and remote navigation.
 
 The large header clock is shown only while the floating clock is disabled. The miniature floating clock is drawn over the preview landscape only while the floating clock is enabled; the landscape remains visible when it is off.
 
@@ -130,6 +135,8 @@ The TV preview uses a bundled landscape photograph, with the configured clock dr
 Moving focus between rows with the remote updates the read-only preview immediately, without opening a dialog or changing settings. **OK/Select** or tap performs the same action as before: the floating-clock row toggles the overlay, configuration rows open their dialogs directly, and a ringing alarm can be dismissed from its row. A modal may temporarily cover the preview; closing it reveals the accepted values. There is no additional editing step, and all existing controls, ranges, and save behavior are retained.
 
 The advertising banner and its placeholder are hidden. No bottom space is occupied by advertising; ads and subscription-based ad removal remain future work.
+
+Phone screenshots for a store listing are kept separately in [`play-store-assets/android-phone/`](play-store-assets/android-phone/); TV screenshots remain in `play-store-assets/android-tv/`.
 
 ## Development with Codex
 

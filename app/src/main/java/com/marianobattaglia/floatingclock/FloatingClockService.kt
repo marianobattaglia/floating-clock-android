@@ -10,6 +10,7 @@ import android.content.IntentFilter
 import android.content.res.Configuration
 import android.hardware.display.DisplayManager
 import android.graphics.Point
+import android.text.format.DateFormat
 import android.util.TypedValue
 import android.view.View
 import android.view.WindowInsets
@@ -233,7 +234,7 @@ class FloatingClockService : Service() {
         )
         layoutParams.gravity = FloatingClockPosition.fromId(positionId).gravity
         applyFormat(
-            prefs.getBoolean(PREF_CLOCK_USE_24H, true),
+            prefs.getBoolean(PREF_CLOCK_USE_24H, DateFormat.is24HourFormat(this)),
             prefs.getBoolean(PREF_CLOCK_SHOW_SECONDS, false)
         )
     }
@@ -246,7 +247,7 @@ class FloatingClockService : Service() {
     private fun applySeconds(showSeconds: Boolean) {
         if (!::floatingClockView.isInitialized) return
         val use24h = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-            .getBoolean(PREF_CLOCK_USE_24H, true)
+            .getBoolean(PREF_CLOCK_USE_24H, DateFormat.is24HourFormat(this))
         applyFormat(use24h, showSeconds)
     }
 

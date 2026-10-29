@@ -76,13 +76,26 @@ internal fun ProAccessContent(
         ) {
             Text(stringResource(R.string.pro_purchase_action))
         }
+        if (state.effectiveStatus == ActualProStatus.PRO) {
+            Text(
+                stringResource(
+                    if (state.reviewAccessGranted) {
+                        R.string.review_access_active
+                    } else {
+                        R.string.pro_access_active
+                    }
+                ),
+                color = DashboardColors.ProGold,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
         billingFeedback(state.feedback)?.let { message ->
             Text(stringResource(message))
         }
-        Text(stringResource(R.string.pro_restore_note))
-        if (state.reviewAccessGranted) {
-            Text(stringResource(R.string.review_access_active))
-        } else if (state.reviewAccessConfigured) {
+        if (state.effectiveStatus != ActualProStatus.PRO) {
+            Text(stringResource(R.string.pro_restore_note))
+        }
+        if (!state.reviewAccessGranted && state.reviewAccessConfigured) {
             Button(onClick = onOpenReviewAccess) {
                 Text(stringResource(R.string.review_access_action))
             }
@@ -227,14 +240,14 @@ private fun DebugOverrideButton(
 }
 
 @Composable
-private fun statusLabel(status: ActualProStatus): Int = when (status) {
+internal fun statusLabel(status: ActualProStatus): Int = when (status) {
     ActualProStatus.CHECKING -> R.string.pro_status_checking
     ActualProStatus.FREE -> R.string.pro_status_free
     ActualProStatus.PRO -> R.string.pro_status_pro
     ActualProStatus.UNAVAILABLE -> R.string.pro_status_unavailable
 }
 
-private fun billingFeedback(feedback: ProBillingFeedback): Int? = when (feedback) {
+internal fun billingFeedback(feedback: ProBillingFeedback): Int? = when (feedback) {
     ProBillingFeedback.NONE -> null
     ProBillingFeedback.PENDING -> R.string.pro_feedback_pending
     ProBillingFeedback.CANCELED -> R.string.pro_feedback_canceled
